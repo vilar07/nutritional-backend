@@ -1,0 +1,11 @@
+#create a module 
+
+nest -g module users
+
+#create controller
+
+nest g controller users/controller/users
+
+#create service
+
+nest g service users/services/users
