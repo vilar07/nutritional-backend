@@ -9,3 +9,8 @@ nest g controller users/controller/users
 #create service
 
 nest g service users/services/users
+
+--------------------------------------------------------
+Diagramas:
+
+https://dbdiagram.io/d/653fde35ffbf5169f0bfce58 - variables

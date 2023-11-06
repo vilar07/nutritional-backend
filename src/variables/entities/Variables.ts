@@ -1,6 +1,6 @@
-import { Entity, PrimaryGeneratedColumn, Column, ManyToOne } from 'typeorm';
-import { ProfileVariables } from './ProfileVariables';
-import { VariableType } from './VariableType';
+import { Entity, PrimaryGeneratedColumn, Column, ManyToOne, JoinColumn } from 'typeorm';
+import { VariablePossibleOptions } from './VariablePossibleOptions';
+
 
 @Entity('variables')
 export class Variables {
@@ -13,11 +13,9 @@ export class Variables {
   @Column({ nullable: true })
   category: string | null;
 
-  @ManyToOne(() => ProfileVariables, (profileVariables) => profileVariables.variables)
-  profileVariables: ProfileVariables;
-
-  @ManyToOne(() => VariableType, (variableType) => variableType.variablesType)
-  variableType: VariableType;
+  @ManyToOne(() => VariablePossibleOptions, { nullable: true })
+  @JoinColumn({ name: 'variablePossibleOptions_id' })
+  variablePossibleOptions: VariablePossibleOptions;
 
   @Column()
   createdAt: Date;

@@ -5,9 +5,10 @@ import { TypeOrmModule } from '@nestjs/typeorm';
 import { User } from './users/entities/User';
 import { UsersModule } from './users/users.module';
 import { Variables } from './variables/entities/Variables';
-import { ProfileVariables } from './variables/entities/ProfileVariables';
 import { VariableType } from './variables/entities/VariableType';
 import { VariablesModule } from './variables/variables.module';
+import { VariableProfile } from './variables/entities/VariableProfile';
+import { VariablePossibleOptions } from './variables/entities/VariablePossibleOptions';
 
 
 @Module({
@@ -19,7 +20,7 @@ import { VariablesModule } from './variables/variables.module';
       username: "root",
       password: "vilarinho08",
       database: "nutritionalService",
-      entities: [User, Variables, ProfileVariables, VariableType],
+      entities: [User, Variables, VariableProfile, VariableType, VariablePossibleOptions],
       synchronize: true,
     }),
     UsersModule,
