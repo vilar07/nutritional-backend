@@ -1,14 +1,14 @@
 #create a module 
 
-nest -g module users
+nest -g module <dir_name>
 
 #create controller
 
-nest g controller users/controller/users
+nest g controller <dir_name>
 
 #create service
 
-nest g service users/services/users
+nest g service <dir_name>
 
 --------------------------------------------------------
 Diagramas:
