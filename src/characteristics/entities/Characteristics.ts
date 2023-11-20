@@ -20,9 +20,9 @@ export class Characteristics {
   @Column({ nullable: true })
   category: string | null;
 
-  @Column({ type: 'date' })
+  @Column({ type: 'timestamp', default: () => 'CURRENT_TIMESTAMP' })
   created_at: Date;
-
+  
   @ManyToOne(() => CharacteristicsPossibleOptions, { nullable: true })
   @JoinColumn({ name: 'characteristicPossibleOptions_id' })
   characteristicsPossibleOptions: CharacteristicsPossibleOptions;

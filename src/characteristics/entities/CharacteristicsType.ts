@@ -9,7 +9,7 @@ export class CharacteristicsType {
   @Column({type: 'varchar'})
   variable_type: string;
 
-  @Column({ type: 'date' })
+  @Column({ type: 'timestamp', default: () => 'CURRENT_TIMESTAMP' })
   created_at: Date;
 
   @ManyToMany(() => CharacteristicsPossibleOptions, characteristicsPossibleOptions => characteristicsPossibleOptions.characteristicsType)

@@ -32,6 +32,7 @@ import { MealCards } from './objects/entities/MealCards';
       ActivateWhen, ActivateUntil, Articles, Calculators, Carousels, Forms, MealCards
       ],
       synchronize: true,
+      logging: true,
     }),
     UsersModule,
     CharacteristicsModule,

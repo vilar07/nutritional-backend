@@ -1,4 +1,4 @@
-import { Entity, PrimaryGeneratedColumn, Column, OneToMany, ManyToMany } from 'typeorm';
+import { Entity, PrimaryGeneratedColumn, Column, ManyToMany } from 'typeorm';
 import { CharacteristicsPossibleOptions } from './CharacteristicsPossibleOptions';
 
 @Entity("profileCharacteristicsType")
@@ -9,7 +9,7 @@ export class ProfileCharacteristicsType {
   @Column({ type: 'varchar' })
   profile_characteristic_type: string;
 
-  @Column({ type: 'date' })
+  @Column({ type: 'timestamp', default: () => 'CURRENT_TIMESTAMP' })
   created_at: Date;
 
   @ManyToMany(() => CharacteristicsPossibleOptions, characteristicsPossibleOptions => characteristicsPossibleOptions.profileCharacteristicsType)
