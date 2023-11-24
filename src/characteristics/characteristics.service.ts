@@ -1,4 +1,4 @@
-import { Injectable } from '@nestjs/common';
+import { Injectable, Logger } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { NotFoundException } from '@nestjs/common';
 import { CharacteristicsType } from './entities/CharacteristicsType';
@@ -15,6 +15,7 @@ import {
 
 @Injectable()
 export class CharacteristicsService {
+    private readonly logger = new Logger(CharacteristicsService.name);
     constructor(
         @InjectRepository(CharacteristicsType)
         private readonly characteristicsTypeRepository: Repository<CharacteristicsType>,
@@ -46,7 +47,27 @@ export class CharacteristicsService {
     
     async createCharacteristicsPossibleOptions(createOptionsDto: CreateCharacteristicsPossibleOptionsDto): Promise<CharacteristicsPossibleOptions> {
         try {
-            const profileCharacteristicsTypeId = await this.characteristicsTypeRepository.findOne(createOptionsDto.profileCharacteristicsTypeId);
+            this.logger.log('aqui:', createOptionsDto.profileCharacteristicsTypeId);
+            const characteristicsType = await this.characteristicsTypeRepository.findOne({
+                where: {
+                    id: createOptionsDto.characteristicsTypeId,
+                },
+            });
+            const profileCharacteristicsType = await this.profileCharacteristicsTypeRepository.findOne({
+                where: {
+                    id: createOptionsDto.profileCharacteristicsTypeId,
+                },
+            });
+            // Check if both entities are found
+            if (!characteristicsType || !profileCharacteristicsType) {
+                throw new NotFoundException('ProfileCharacteristicsType or CharacteristicsType not found');
+            }
+            this.logger.log('type:', JSON.stringify(characteristicsType));
+            this.logger.log('profiletype:', JSON.stringify(profileCharacteristicsType));
+            //     // Process the request and return a string result
+            // const result = 'Request processed successfully';
+            // return result;
+            
         }
         catch (error) {
             // Handle not found errors, you may want to return a 404 response or handle it differently

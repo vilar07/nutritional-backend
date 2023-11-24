@@ -1,9 +1,10 @@
-import { Body, Controller, Post, Get } from '@nestjs/common';
+import { Body, Controller, Post, Get, Logger } from '@nestjs/common';
 import { CharacteristicsService } from './characteristics.service';
 import { CreateCharacteristicsPossibleOptionsDto, CreateCharacteristicsTypeDto, CreateProfileCharacteristicsTypeDto } from './dtos/characteristics.dto';
 
 @Controller('characteristics')
 export class CharacteristicsController {
+    private readonly logger = new Logger(CharacteristicsController.name);
     constructor(private readonly characteristicsService: CharacteristicsService){}
 
     @Post('type')
@@ -28,6 +29,7 @@ export class CharacteristicsController {
 
     @Post('possibleOptions')
     async createPossibleOptions(@Body() createOptionsDto: CreateCharacteristicsPossibleOptionsDto) {
+        this.logger.log('Request Body:', createOptionsDto);
         return await this.characteristicsService.createCharacteristicsPossibleOptions(createOptionsDto);
     }
 
