@@ -1,4 +1,4 @@
-import { Body, Controller, Post, Get, Logger } from '@nestjs/common';
+import { Body, Controller, Post, Get, Logger, Param } from '@nestjs/common';
 import { CharacteristicsService } from './characteristics.service';
 import { CreateCharacteristicsPossibleOptionsDto, CreateCharacteristicsTypeDto, CreateProfileCharacteristicsTypeDto } from './dtos/characteristics.dto';
 
@@ -7,30 +7,51 @@ export class CharacteristicsController {
     private readonly logger = new Logger(CharacteristicsController.name);
     constructor(private readonly characteristicsService: CharacteristicsService){}
 
+    // Create characteristics type
     @Post('type')
     async createCharacteristicsType(@Body() createCharacteristicsTypeDto: CreateCharacteristicsTypeDto){
         return await this.characteristicsService.createCharacteristicsType(createCharacteristicsTypeDto);
     }
 
+    // Get all characteristics types
     @Get('types')
     async getCharacteristicsTypes() {
         return await this.characteristicsService.getCharacteristicsTypes();
     }
 
+    // Create profile characteristics type
     @Post('profileType')
     async createProfileCharacteristicsType(@Body() createProfileCharacteristicsTypeDto: CreateProfileCharacteristicsTypeDto){
         return await this.characteristicsService.createProfileCharacteristicsType(createProfileCharacteristicsTypeDto);
     }    
 
+    // Get all profile characteristics types
     @Get('profileTypes')
     async getProfileCharacteristicsTypes() {
         return await this.characteristicsService.getProfileCharacteristicsTypes();
     }
 
+    // Create possible options and associate them with a characteristicsType and a profileCharacteristicsType
     @Post('possibleOptions')
     async createPossibleOptions(@Body() createOptionsDto: CreateCharacteristicsPossibleOptionsDto) {
         this.logger.log('Request Body:', createOptionsDto);
         return await this.characteristicsService.createCharacteristicsPossibleOptions(createOptionsDto);
     }
+
+    // Get all possible options
+    @Get('possibleOptions')
+    async getAllPossibleOptions() {
+        return await this.characteristicsService.getAllPossibleOptions();
+    } 
+    
+    // Get Options based on characteristicTypeID and  profileCharacteristicTypeID
+    @Get('possibleOptions/:characteristicsTypeId/:profileCharacteristicsTypeId')
+    async getOptionsByCharacteristics(
+        @Param('characteristicsTypeId') characteristicsTypeId: number,
+        @Param('profileCharacteristicsTypeId') profileCharacteristicsTypeId: number,
+    ) {
+        return await this.characteristicsService.getOptionsByCharacteristics(characteristicsTypeId, profileCharacteristicsTypeId);
+    }
+
 
 }
