@@ -20,4 +20,9 @@ export class CreateCharacteristicsTypeDto {
     created_at: Date;
     characteristicsPossibleOptionsId: number;
   }
+
+  export class GetOptionsByCharacteristicsDto {
+    characteristicsTypeId: number;
+    profileCharacteristicsTypeId: number;
+  }
   

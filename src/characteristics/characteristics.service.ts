@@ -11,6 +11,7 @@ import {
     CreateProfileCharacteristicsTypeDto,
     CreateCharacteristicsPossibleOptionsDto,
     CreateCharacteristicsDto,
+    GetOptionsByCharacteristicsDto,
   } from './dtos/characteristics.dto';
 
 @Injectable()
@@ -102,15 +103,12 @@ export class CharacteristicsService {
     }
 
     // Get Options based on characteristicTypeID and  profileCharacteristicTypeID
-    async getOptionsByCharacteristics(
-        characteristicsTypeId: number,
-        profileCharacteristicsTypeId: number,
-    ): Promise<CharacteristicsPossibleOptions[]> {
+    async getOptionsByCharacteristics(params: GetOptionsByCharacteristicsDto): Promise<CharacteristicsPossibleOptions[]> {
         try {
             const options = await this.characteristicsPossibleOptionsRepository.find({
                 where: {
-                    characteristicsType: { id: characteristicsTypeId },
-                    profileCharacteristicsType: { id: profileCharacteristicsTypeId },
+                    characteristicsType: { id: params.characteristicsTypeId },
+                    profileCharacteristicsType: { id: params.profileCharacteristicsTypeId },
                 },
             });
     
