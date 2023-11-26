@@ -1,7 +1,7 @@
 import { Body, Controller, Post, Get, Logger, Param } from '@nestjs/common';
 import { CharacteristicsService } from './characteristics.service';
 import { CreateCharacteristicsPossibleOptionsDto, CreateCharacteristicsTypeDto, CreateProfileCharacteristicsTypeDto
-, GetOptionsByCharacteristicsDto, CreateCharacteristicsDto } from './dtos/characteristics.dto';
+, GetOptionsByCharacteristicsDto, CreateCharacteristicsDto, GetCharacteristicsByNameDto } from './dtos/characteristics.dto';
 
 @Controller('characteristics')
 export class CharacteristicsController {
@@ -62,6 +62,14 @@ export class CharacteristicsController {
     @Get('characteristics')
     async getAllCharacteristics(){
         return this.characteristicsService.getAllCharacteristics();
+    }
+
+    // Get characteristics by name
+    @Get('characteristics/:name')
+    async getCharacteristicsByName(
+        @Param() params: GetCharacteristicsByNameDto,
+    ) {
+        return await this.characteristicsService.getCharacteristicsByName(params);
     }
 
 }

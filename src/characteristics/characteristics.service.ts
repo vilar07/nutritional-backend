@@ -5,7 +5,7 @@ import { Repository } from 'typeorm';
 import { ProfileCharacteristicsType } from './entities/ProfileCharacteristicsType';
 import { CharacteristicsPossibleOptions } from './entities/CharacteristicsPossibleOptions';
 import { Characteristics } from './entities/Characteristics';
-import {CreateCharacteristicsTypeDto,CreateProfileCharacteristicsTypeDto,CreateCharacteristicsPossibleOptionsDto,CreateCharacteristicsDto,GetOptionsByCharacteristicsDto} from './dtos/characteristics.dto';
+import {CreateCharacteristicsTypeDto,CreateProfileCharacteristicsTypeDto,CreateCharacteristicsPossibleOptionsDto,CreateCharacteristicsDto,GetOptionsByCharacteristicsDto, GetCharacteristicsByNameDto} from './dtos/characteristics.dto';
 
 
 @Injectable()
@@ -205,6 +205,31 @@ export class CharacteristicsService {
         } catch (error) {
             // Handle errors, you may want to return a different status code or handle it differently
             throw new NotFoundException('Failed to retrieve characteristics', error);
+        }
+    }
+
+    // Get Characteristics by name
+    async getCharacteristicsByName(params: GetCharacteristicsByNameDto): Promise<Characteristics> {
+        try {
+            const characteristic = await this.characteristicsRepository.findOne({
+                where: {
+                    name: params.name ,
+                },
+                relations: [
+                    'characteristicsPossibleOptions',
+                    'characteristicsPossibleOptions.profileCharacteristicsType',
+                    'characteristicsPossibleOptions.characteristicsType'
+                ],
+            });
+    
+            if (!characteristic) {
+                throw new NotFoundException('No characteristic found for the given name');
+            }
+    
+            return characteristic;
+        } catch (error) {
+            this.logger.error('Error retrieving characteristic', error);
+            throw new NotFoundException('Failed to retrieve characteristic', error);
         }
     }
 

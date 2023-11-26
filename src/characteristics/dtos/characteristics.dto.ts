@@ -26,4 +26,8 @@
     profileCharacteristicsTypeId: number;
   }
 
+  export class GetCharacteristicsByNameDto {
+    name: string;
+  }
+
   
