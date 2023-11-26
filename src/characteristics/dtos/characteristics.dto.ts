@@ -1,8 +1,9 @@
 // characteristics.dto.ts
 
-export class CreateCharacteristicsTypeDto {
+  export class CreateCharacteristicsTypeDto {
     variable_type: string;
   }
+
   
   export class CreateProfileCharacteristicsTypeDto {
     profile_characteristic_type: string;
@@ -17,7 +18,6 @@ export class CreateCharacteristicsTypeDto {
   export class CreateCharacteristicsDto {
     name: string;
     category: string | null;
-    created_at: Date;
     characteristicsPossibleOptionsId: number;
   }
 
@@ -25,4 +25,5 @@ export class CreateCharacteristicsTypeDto {
     characteristicsTypeId: number;
     profileCharacteristicsTypeId: number;
   }
+
   

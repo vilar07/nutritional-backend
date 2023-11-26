@@ -1,18 +1,12 @@
-import { Injectable, Logger } from '@nestjs/common';
+import { Injectable, Logger, NotFoundException, HttpException, HttpStatus, InternalServerErrorException } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
-import { NotFoundException } from '@nestjs/common';
 import { CharacteristicsType } from './entities/CharacteristicsType';
 import { Repository } from 'typeorm';
 import { ProfileCharacteristicsType } from './entities/ProfileCharacteristicsType';
 import { CharacteristicsPossibleOptions } from './entities/CharacteristicsPossibleOptions';
 import { Characteristics } from './entities/Characteristics';
-import {
-    CreateCharacteristicsTypeDto,
-    CreateProfileCharacteristicsTypeDto,
-    CreateCharacteristicsPossibleOptionsDto,
-    CreateCharacteristicsDto,
-    GetOptionsByCharacteristicsDto,
-  } from './dtos/characteristics.dto';
+import {CreateCharacteristicsTypeDto,CreateProfileCharacteristicsTypeDto,CreateCharacteristicsPossibleOptionsDto,CreateCharacteristicsDto,GetOptionsByCharacteristicsDto} from './dtos/characteristics.dto';
+
 
 @Injectable()
 export class CharacteristicsService {
@@ -30,6 +24,17 @@ export class CharacteristicsService {
 
     // Create characteristics type
     async createCharacteristicsType(createCharacteristicsTypeDTO: CreateCharacteristicsTypeDto): Promise<CharacteristicsType> {
+        const existingCharacteristicsType = await this.characteristicsTypeRepository.findOne({
+            where: {
+                variable_type: createCharacteristicsTypeDTO.variable_type,
+            },
+        });
+
+        if (existingCharacteristicsType) {
+            // If a CharacteristicsType with the same variable type exists, return a message with a 409 status code (Conflict)
+            const errorMessage = 'CharacteristicsType with the same characteristic type name already exists';
+            throw new HttpException(errorMessage, HttpStatus.CONFLICT);
+        }
         const characteristicsType = this.characteristicsTypeRepository.create(createCharacteristicsTypeDTO);
         return await this.characteristicsTypeRepository.save(characteristicsType);
     }
@@ -41,6 +46,18 @@ export class CharacteristicsService {
 
     // Create profile characteristics type
     async createProfileCharacteristicsType(createProfileCharacteristicsTypeDto: CreateProfileCharacteristicsTypeDto): Promise<ProfileCharacteristicsType> {
+        
+        const existingProfileCharacteristicsType = await this.profileCharacteristicsTypeRepository.findOne({
+            where: {
+                profile_characteristic_type: createProfileCharacteristicsTypeDto.profile_characteristic_type,
+            },
+        });
+        if(existingProfileCharacteristicsType) {
+            // If a ProfileCharacteristicsType with the same profile characteristic type exists, return a message with a 409 status code (Conflict)
+            const errorMessage = 'ProfileCharacteristicsType with the same profile characteristic type name already exists';
+            throw new HttpException(errorMessage, HttpStatus.CONFLICT);
+        }
+        
         const profileCharacteristicsType = this.profileCharacteristicsTypeRepository.create(createProfileCharacteristicsTypeDto);
         return await this.profileCharacteristicsTypeRepository.save(profileCharacteristicsType);
     }
@@ -120,6 +137,74 @@ export class CharacteristicsService {
         } catch (error) {
             this.logger.error('Error retrieving options', error);
             throw new NotFoundException('Failed to retrieve options', error);
+        }
+    }
+
+    // Create characteristics
+    async createCharacteristics(createCharacteristicsDto: CreateCharacteristicsDto): Promise<Characteristics> {
+        try {
+            const existingCharacteristic = await this.characteristicsRepository.findOne({
+                where: {
+                    name: createCharacteristicsDto.name,
+                },
+            });
+    
+            if (existingCharacteristic) {
+                const errorMessage = 'Characteristic with same name already exists';
+                throw new HttpException(errorMessage, HttpStatus.CONFLICT);
+            }
+
+            const characteristicsPossibleOptions = await this.characteristicsPossibleOptionsRepository.findOne({
+                where: {
+                    id: createCharacteristicsDto.characteristicsPossibleOptionsId,
+                },
+            });
+            // Check if both entities are found
+            if (!characteristicsPossibleOptions) {
+                throw new NotFoundException('CharacteristicsPossibleOptions not found');
+            }
+            const characteristics = this.characteristicsRepository.create({
+                name: createCharacteristicsDto.name,
+                category: createCharacteristicsDto.category,
+                characteristicsPossibleOptions: characteristicsPossibleOptions,
+            });
+
+            // Save the new entity
+            const savedCharacteristics = await this.characteristicsRepository.save(characteristics);
+            // const result = 'Request processed successfully';
+            return characteristics;
+            
+        }
+        catch (error) {
+            if (error instanceof NotFoundException) {
+                // Handle not found errors, you may want to return a 404 response or handle it differently
+                throw new NotFoundException('Error creating characteristics');
+            } else {
+                // Handle other types of errors (e.g., conflict)
+                throw error;
+            }
+        }
+    }
+
+    // Get all characteristics
+    async getAllCharacteristics(): Promise<Characteristics[]> {
+        try {
+            const characteristicsList = await this.characteristicsRepository.find({
+                relations: [
+                    'characteristicsPossibleOptions',
+                    'characteristicsPossibleOptions.profileCharacteristicsType',
+                    'characteristicsPossibleOptions.characteristicsType'
+                ],
+            });
+
+            if (!characteristicsList || characteristicsList.length === 0) {
+                throw new NotFoundException('No characteristics found');
+            }
+
+            return characteristicsList;
+        } catch (error) {
+            // Handle errors, you may want to return a different status code or handle it differently
+            throw new NotFoundException('Failed to retrieve characteristics', error);
         }
     }
 
