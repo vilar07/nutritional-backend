@@ -14,6 +14,12 @@
     characteristicsTypeId: number;
     possibleOptions: string;
   }
+
+  export class CreateCharacteristicsPossibleOptionsByNameDto {
+    profileCharacteristicsTypeName: string;
+    characteristicsTypeName: string;
+    possibleOptions: string;
+  }
   
   export class CreateCharacteristicsDto {
     name: string;
@@ -24,6 +30,11 @@
   export class GetOptionsByCharacteristicsDto {
     characteristicsTypeId: number;
     profileCharacteristicsTypeId: number;
+  }
+
+  export class GetOptionsByCharacteristicsNameDto {
+    characteristicsTypeName: string;
+    profileCharacteristicsTypeName: string;
   }
 
   export class GetCharacteristicsByNameDto {

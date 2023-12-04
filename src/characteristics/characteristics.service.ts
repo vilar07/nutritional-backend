@@ -5,7 +5,8 @@ import { Repository } from 'typeorm';
 import { ProfileCharacteristicsType } from './entities/ProfileCharacteristicsType';
 import { CharacteristicsPossibleOptions } from './entities/CharacteristicsPossibleOptions';
 import { Characteristics } from './entities/Characteristics';
-import {CreateCharacteristicsTypeDto,CreateProfileCharacteristicsTypeDto,CreateCharacteristicsPossibleOptionsDto,CreateCharacteristicsDto,GetOptionsByCharacteristicsDto, GetCharacteristicsByNameDto} from './dtos/characteristics.dto';
+import {CreateCharacteristicsTypeDto,CreateProfileCharacteristicsTypeDto,CreateCharacteristicsPossibleOptionsDto,CreateCharacteristicsDto,GetOptionsByCharacteristicsDto, GetCharacteristicsByNameDto
+, GetOptionsByCharacteristicsNameDto, CreateCharacteristicsPossibleOptionsByNameDto} from './dtos/characteristics.dto';
 
 
 @Injectable()
@@ -126,6 +127,7 @@ export class CharacteristicsService {
         }
     }
 
+   
     // Get all possible options
     async getAllPossibleOptions(): Promise<CharacteristicsPossibleOptions[]> {
         try {
@@ -163,6 +165,31 @@ export class CharacteristicsService {
     
             if (!options || options.length === 0) {
                 throw new NotFoundException('No options found for the given IDs');
+            }
+    
+            return options;
+        } catch (error) {
+            this.logger.error('Error retrieving options', error);
+            throw new NotFoundException('Failed to retrieve options', error);
+        }
+    }
+
+    // Get Options based on characteristicTypeName and  profileCharacteristicTypeName
+    async getOptionsByCharacteristicsName(params: GetOptionsByCharacteristicsNameDto): Promise<CharacteristicsPossibleOptions[]> {
+        try {
+            const options = await this.characteristicsPossibleOptionsRepository.find({
+                where: {
+                    characteristicsType: { variable_type: params.characteristicsTypeName },
+                    profileCharacteristicsType: { profile_characteristic_type: params.profileCharacteristicsTypeName },
+                },
+                // relations: [
+                //     'profileCharacteristicsType',
+                //     'characteristicsType'
+                // ],
+            });
+    
+            if (!options || options.length === 0) {
+                throw new NotFoundException('No options found for the given Names');
             }
     
             return options;
