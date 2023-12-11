@@ -1,8 +1,8 @@
-import { Body, Controller, Post, Get, Logger, Param } from '@nestjs/common';
+import { Body, Controller, Post, Get, Logger, Param, Query } from '@nestjs/common';
 import { CharacteristicsService } from './characteristics.service';
 import { CreateCharacteristicsPossibleOptionsDto, CreateCharacteristicsTypeDto, CreateProfileCharacteristicsTypeDto
 , GetOptionsByCharacteristicsDto, CreateCharacteristicsDto, GetCharacteristicsByNameDto, GetOptionsByCharacteristicsNameDto
-, CreateCharacteristicsPossibleOptionsByNameDto } from './dtos/characteristics.dto';
+, CreateCharacteristicsPossibleOptionsByNameDto,GetOptionsIdDto } from './dtos/characteristics.dto';
 
 @Controller('characteristics')
 export class CharacteristicsController {
@@ -39,6 +39,12 @@ export class CharacteristicsController {
         return await this.characteristicsService.createCharacteristicsPossibleOptions(createOptionsDto);
     }
 
+    // Create possible options and associate them with a characteristicsType and a profileCharacteristicsType
+    @Post('possibleOptionsNameBased')
+    async createPossibleOptionsNameBased(@Body() createOptionsDto: CreateCharacteristicsPossibleOptionsByNameDto) {
+    return await this.characteristicsService.createCharacteristicsPossibleOptionsNameBased(createOptionsDto);
+}
+
 
     // Get all possible options
     @Get('possibleOptions')
@@ -60,6 +66,12 @@ export class CharacteristicsController {
         @Param() params: GetOptionsByCharacteristicsNameDto,
     ) {
         return await this.characteristicsService.getOptionsByCharacteristicsName(params);
+    }
+
+    // Options ID based on characteristicTypeName and  profileCharacteristicTypeName and possibleOptions
+    @Get('possibleOptionsId')
+    async getOptionsByIds(@Query() params: GetOptionsIdDto) {
+        return await this.characteristicsService.getOptionsId(params);
     }
 
     // Create characteristics
