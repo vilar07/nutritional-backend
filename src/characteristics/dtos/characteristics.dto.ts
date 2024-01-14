@@ -26,10 +26,13 @@ import { IsOptional, IsInt, IsString, IsNotEmpty } from 'class-validator';
 
   export class CreateCharacteristicsPossibleOptionsByNameDto {
     @ApiProperty()
+    @IsNotEmpty({ message: 'Characteristic profile type cannot be empty' })
     profileCharacteristicsTypeName: string;
     @ApiProperty()
+    @IsNotEmpty({ message: 'Characteristic type cannot be empty' })
     characteristicsTypeName: string;
     @ApiProperty()
+    @IsNotEmpty({ message: 'Possible Options cannot be empty' })
     possibleOptions: string;
   }
   

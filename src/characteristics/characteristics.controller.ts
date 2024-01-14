@@ -41,7 +41,7 @@ export class CharacteristicsController {
 
     // Create possible options and associate them with a characteristicsType and a profileCharacteristicsType
     @Post('possibleOptionsNameBased')
-    async createPossibleOptionsNameBased(@Body() createOptionsDto: CreateCharacteristicsPossibleOptionsByNameDto) {
+    async createPossibleOptionsNameBased(@Body(new ValidationPipe()) createOptionsDto: CreateCharacteristicsPossibleOptionsByNameDto) {
     return await this.characteristicsService.createCharacteristicsPossibleOptionsNameBased(createOptionsDto);
 }
 
