@@ -1,14 +1,17 @@
 // characteristics.dto.ts
 import { ApiProperty } from '@nestjs/swagger';
+import { IsOptional, IsInt, IsString, IsNotEmpty } from 'class-validator';
 
   export class CreateCharacteristicsTypeDto {
     @ApiProperty()
+    @IsNotEmpty({ message: 'Characteristic type cannot be empty' })
     variable_type: string;
   }
 
   
   export class CreateProfileCharacteristicsTypeDto {
     @ApiProperty()
+    @IsNotEmpty({ message: 'Profile Characteristic type cannot be empty' })
     profile_characteristic_type: string;
   }
   
@@ -65,6 +68,19 @@ import { ApiProperty } from '@nestjs/swagger';
   export class GetCharacteristicsByNameDto {
     @ApiProperty()
     name: string;
+  }
+
+  export class UpdateCharacteristicsDto {
+    @ApiProperty()
+    @IsString({ message: 'Invalid characteristics type name' })
+    characteristicsTypeName: string;
+
+    @ApiProperty()
+    @IsString({ message: 'Invalid profile characteristics type name' })
+    profileCharacteristicsTypeName: string;
+
+    @ApiProperty()
+    characteristicsPossibleOptionsId: number;
   }
 
   

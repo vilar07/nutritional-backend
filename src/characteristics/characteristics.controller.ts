@@ -1,8 +1,8 @@
-import { Body, Controller, Post, Get, Logger, Param, Query } from '@nestjs/common';
+import { Body, Controller, Post, Get, Put, Logger, Param, Query, ValidationPipe } from '@nestjs/common';
 import { CharacteristicsService } from './characteristics.service';
 import { CreateCharacteristicsPossibleOptionsDto, CreateCharacteristicsTypeDto, CreateProfileCharacteristicsTypeDto
 , GetOptionsByCharacteristicsDto, CreateCharacteristicsDto, GetCharacteristicsByNameDto, GetOptionsByCharacteristicsNameDto
-, CreateCharacteristicsPossibleOptionsByNameDto,GetOptionsIdDto } from './dtos/characteristics.dto';
+, CreateCharacteristicsPossibleOptionsByNameDto,GetOptionsIdDto, UpdateCharacteristicsDto } from './dtos/characteristics.dto';
 
 @Controller('characteristics')
 export class CharacteristicsController {
@@ -11,7 +11,7 @@ export class CharacteristicsController {
 
     // Create characteristics type
     @Post('type')
-    async createCharacteristicsType(@Body() createCharacteristicsTypeDto: CreateCharacteristicsTypeDto){
+    async createCharacteristicsType(@Body(new ValidationPipe()) createCharacteristicsTypeDto: CreateCharacteristicsTypeDto) {
         return await this.characteristicsService.createCharacteristicsType(createCharacteristicsTypeDto);
     }
 
@@ -23,7 +23,7 @@ export class CharacteristicsController {
 
     // Create profile characteristics type
     @Post('profileType')
-    async createProfileCharacteristicsType(@Body() createProfileCharacteristicsTypeDto: CreateProfileCharacteristicsTypeDto){
+    async createProfileCharacteristicsType(@Body(new ValidationPipe()) createProfileCharacteristicsTypeDto: CreateProfileCharacteristicsTypeDto){
         return await this.characteristicsService.createProfileCharacteristicsType(createProfileCharacteristicsTypeDto);
     }    
 
@@ -93,5 +93,7 @@ export class CharacteristicsController {
     ) {
         return await this.characteristicsService.getCharacteristicsByName(params);
     }
+
+    
 
 }

@@ -6,7 +6,7 @@ import { ProfileCharacteristicsType } from './entities/ProfileCharacteristicsTyp
 import { CharacteristicsPossibleOptions } from './entities/CharacteristicsPossibleOptions';
 import { Characteristics } from './entities/Characteristics';
 import {CreateCharacteristicsTypeDto,CreateProfileCharacteristicsTypeDto,CreateCharacteristicsPossibleOptionsDto,CreateCharacteristicsDto,GetOptionsByCharacteristicsDto, GetCharacteristicsByNameDto
-, GetOptionsByCharacteristicsNameDto, CreateCharacteristicsPossibleOptionsByNameDto,GetOptionsIdDto} from './dtos/characteristics.dto';
+, GetOptionsByCharacteristicsNameDto, CreateCharacteristicsPossibleOptionsByNameDto,GetOptionsIdDto, UpdateCharacteristicsDto} from './dtos/characteristics.dto';
 
 
 @Injectable()
@@ -370,5 +370,6 @@ async createCharacteristicsPossibleOptionsNameBased(createOptionsDto: CreateChar
             throw new NotFoundException('Failed to retrieve characteristic', error);
         }
     }
+
 
 }
