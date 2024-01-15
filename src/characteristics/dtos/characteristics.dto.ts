@@ -86,4 +86,10 @@ import { IsOptional, IsInt, IsString, IsNotEmpty } from 'class-validator';
     characteristicsPossibleOptionsId: number;
   }
 
+  export class DeleteCharacteristicsTypeDto {
+    @IsString()
+    @ApiProperty()
+    typeName: string;
+  }
+
   

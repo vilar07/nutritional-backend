@@ -1,8 +1,8 @@
-import { Body, Controller, Post, Get, Put, Logger, Param, Query, ValidationPipe } from '@nestjs/common';
+import { Body, Controller, Post, Get, Put, Logger, Param, Query, ValidationPipe, Delete } from '@nestjs/common';
 import { CharacteristicsService } from './characteristics.service';
 import { CreateCharacteristicsPossibleOptionsDto, CreateCharacteristicsTypeDto, CreateProfileCharacteristicsTypeDto
 , GetOptionsByCharacteristicsDto, CreateCharacteristicsDto, GetCharacteristicsByNameDto, GetOptionsByCharacteristicsNameDto
-, CreateCharacteristicsPossibleOptionsByNameDto,GetOptionsIdDto, UpdateCharacteristicsDto } from './dtos/characteristics.dto';
+, CreateCharacteristicsPossibleOptionsByNameDto,GetOptionsIdDto, UpdateCharacteristicsDto, DeleteCharacteristicsTypeDto } from './dtos/characteristics.dto';
 
 @Controller('characteristics')
 export class CharacteristicsController {
@@ -13,6 +13,12 @@ export class CharacteristicsController {
     @Post('type')
     async createCharacteristicsType(@Body(new ValidationPipe()) createCharacteristicsTypeDto: CreateCharacteristicsTypeDto) {
         return await this.characteristicsService.createCharacteristicsType(createCharacteristicsTypeDto);
+    }
+
+    // Delete characteristics type and associated characteristics
+    @Delete('type/:typeName')
+    async deleteCharacteristicsType(@Param() params: DeleteCharacteristicsTypeDto) {
+        return await this.characteristicsService.deleteCharacteristicsType(params);
     }
 
     // Get all characteristics types
@@ -93,7 +99,6 @@ export class CharacteristicsController {
     ) {
         return await this.characteristicsService.getCharacteristicsByName(params);
     }
-
     
 
 }

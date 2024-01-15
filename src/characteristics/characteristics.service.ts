@@ -1,12 +1,13 @@
 import { Injectable, Logger, NotFoundException, HttpException, HttpStatus, InternalServerErrorException } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { CharacteristicsType } from './entities/CharacteristicsType';
-import { Repository } from 'typeorm';
+import { Repository, In } from 'typeorm';
 import { ProfileCharacteristicsType } from './entities/ProfileCharacteristicsType';
 import { CharacteristicsPossibleOptions } from './entities/CharacteristicsPossibleOptions';
 import { Characteristics } from './entities/Characteristics';
 import {CreateCharacteristicsTypeDto,CreateProfileCharacteristicsTypeDto,CreateCharacteristicsPossibleOptionsDto,CreateCharacteristicsDto,GetOptionsByCharacteristicsDto, GetCharacteristicsByNameDto
-, GetOptionsByCharacteristicsNameDto, CreateCharacteristicsPossibleOptionsByNameDto,GetOptionsIdDto, UpdateCharacteristicsDto} from './dtos/characteristics.dto';
+, GetOptionsByCharacteristicsNameDto, CreateCharacteristicsPossibleOptionsByNameDto,GetOptionsIdDto, UpdateCharacteristicsDto,
+DeleteCharacteristicsTypeDto} from './dtos/characteristics.dto';
 
 
 @Injectable()
@@ -38,6 +39,39 @@ export class CharacteristicsService {
         }
         const characteristicsType = this.characteristicsTypeRepository.create(createCharacteristicsTypeDTO);
         return await this.characteristicsTypeRepository.save(characteristicsType);
+    }
+
+    // Delete characteristics type and associated characteristics
+    async deleteCharacteristicsType(dto: DeleteCharacteristicsTypeDto): Promise<void> {
+        const characteristicsType = await this.characteristicsTypeRepository.findOne({
+        where: {
+            variable_type: dto.typeName,
+        },
+        relations: [ 'characteristicsPossibleOptions' ],
+        });
+
+        if (!characteristicsType) {
+        throw new NotFoundException('CharacteristicsType not found');
+        }
+        const characteristicsPossibleOptionsIds = characteristicsType.characteristicsPossibleOptions.map(option => option.id);
+        
+        // Retrieve characteristics associated with the characteristicsPossibleOptionsIds
+        const characteristics = await this.characteristicsRepository.find({
+            where: {
+                characteristicsPossibleOptions: {
+                    id: In(characteristicsPossibleOptionsIds),
+                },
+            },
+        });
+
+        await this.characteristicsRepository.remove(characteristics);
+
+        // Delete characteristicsPossibleOptions
+        await this.characteristicsPossibleOptionsRepository.remove(characteristicsType.characteristicsPossibleOptions);
+
+        // Delete characteristicsType
+        await this.characteristicsTypeRepository.remove(characteristicsType);
+
     }
 
     // Get all characteristics types
