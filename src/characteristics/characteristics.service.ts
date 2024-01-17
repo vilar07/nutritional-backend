@@ -42,36 +42,46 @@ export class CharacteristicsService {
     }
 
     // Delete characteristics type and associated characteristics
-    async deleteCharacteristicsType(dto: DeleteCharacteristicsTypeDto): Promise<void> {
-        const characteristicsType = await this.characteristicsTypeRepository.findOne({
-        where: {
-            variable_type: dto.typeName,
-        },
-        relations: [ 'characteristicsPossibleOptions' ],
-        });
-
-        if (!characteristicsType) {
-        throw new NotFoundException('CharacteristicsType not found');
-        }
-        const characteristicsPossibleOptionsIds = characteristicsType.characteristicsPossibleOptions.map(option => option.id);
-        
-        // Retrieve characteristics associated with the characteristicsPossibleOptionsIds
-        const characteristics = await this.characteristicsRepository.find({
-            where: {
-                characteristicsPossibleOptions: {
-                    id: In(characteristicsPossibleOptionsIds),
+    async deleteCharacteristicsType(dto: DeleteCharacteristicsTypeDto): Promise<string> {
+        try {
+            const characteristicsType = await this.characteristicsTypeRepository.findOne({
+                where: {
+                    variable_type: dto.typeName,
                 },
-            },
-        });
-
-        await this.characteristicsRepository.remove(characteristics);
-
-        // Delete characteristicsPossibleOptions
-        await this.characteristicsPossibleOptionsRepository.remove(characteristicsType.characteristicsPossibleOptions);
-
-        // Delete characteristicsType
-        await this.characteristicsTypeRepository.remove(characteristicsType);
-
+                relations: ['characteristicsPossibleOptions'],
+            });
+    
+            if (!characteristicsType) {
+                throw new NotFoundException('CharacteristicsType not found');
+            }
+    
+            const characteristicsPossibleOptionsIds = characteristicsType.characteristicsPossibleOptions.map(option => option.id);
+    
+            // Retrieve characteristics associated with the characteristicsPossibleOptionsIds
+            const characteristics = await this.characteristicsRepository.find({
+                where: {
+                    characteristicsPossibleOptions: {
+                        id: In(characteristicsPossibleOptionsIds),
+                    },
+                },
+            });
+    
+            await this.characteristicsRepository.remove(characteristics);
+    
+            // Delete characteristicsPossibleOptions
+            await this.characteristicsPossibleOptionsRepository.remove(characteristicsType.characteristicsPossibleOptions);
+    
+            // Delete characteristicsType
+            await this.characteristicsTypeRepository.remove(characteristicsType);
+    
+            return 'Characteristics deleted successfully';
+        } catch (error) {
+            if (error instanceof NotFoundException) {
+                throw new HttpException(error.message, HttpStatus.NOT_FOUND);
+            } else {
+                throw new HttpException('Internal Server Error', HttpStatus.INTERNAL_SERVER_ERROR);
+            }
+        }
     }
 
     // Get all characteristics types
