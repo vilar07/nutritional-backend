@@ -31,7 +31,13 @@ export class CharacteristicsController {
     @Post('profileType')
     async createProfileCharacteristicsType(@Body(new ValidationPipe()) createProfileCharacteristicsTypeDto: CreateProfileCharacteristicsTypeDto){
         return await this.characteristicsService.createProfileCharacteristicsType(createProfileCharacteristicsTypeDto);
-    }    
+    }  
+    
+    // Delete characteristics type and associated characteristics
+    @Delete('profileType/:typeName')
+    async deleteProfileCharacteristicsType(@Param() params: DeleteCharacteristicsTypeDto) {
+        return await this.characteristicsService.deleteProfileCharacteristicsType(params);
+    }
 
     // Get all profile characteristics types
     @Get('profileTypes')
