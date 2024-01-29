@@ -31,7 +31,7 @@ import { MealCards } from './objects/entities/MealCards';
       entities: [User, Characteristics, ProfileCharacteristicsType, CharacteristicsType, CharacteristicsPossibleOptions,
       ActivateWhen, ActivateUntil, Articles, Calculators, Carousels, Forms, MealCards
       ],
-      synchronize: true,
+      synchronize: false,
       logging: true,
     }),
     UsersModule,

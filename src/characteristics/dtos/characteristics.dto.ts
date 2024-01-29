@@ -15,16 +15,28 @@ import { IsOptional, IsInt, IsString, IsNotEmpty } from 'class-validator';
     profile_characteristic_type: string;
   }
   
-  export class CreateCharacteristicsPossibleOptionsDto {
+  // export class CreateCharacteristicsPossibleOptionsDto {
+  //   @ApiProperty()
+  //   profileCharacteristicsTypeId: number;
+  //   @ApiProperty()
+  //   characteristicsTypeId: number;
+  //   @ApiProperty()
+  //   possibleOptions: string;
+  // }
+
+  export class CreateCharacteristicsPossibleOptionsByNameDto {
     @ApiProperty()
-    profileCharacteristicsTypeId: number;
+    @IsNotEmpty({ message: 'Characteristic profile type cannot be empty' })
+    profileCharacteristicsTypeName: string;
     @ApiProperty()
-    characteristicsTypeId: number;
+    @IsNotEmpty({ message: 'Characteristic type cannot be empty' })
+    characteristicsTypeName: string;
     @ApiProperty()
+    @IsNotEmpty({ message: 'Possible Options cannot be empty' })
     possibleOptions: string;
   }
 
-  export class CreateCharacteristicsPossibleOptionsByNameDto {
+  export class DeleteCharacteristicsPossibleOptionsDto {
     @ApiProperty()
     @IsNotEmpty({ message: 'Characteristic profile type cannot be empty' })
     profileCharacteristicsTypeName: string;
@@ -45,11 +57,25 @@ import { IsOptional, IsInt, IsString, IsNotEmpty } from 'class-validator';
     characteristicsPossibleOptionsId: number;
   }
 
-  export class GetOptionsByCharacteristicsDto {
+  // export class GetOptionsByCharacteristicsDto {
+  //   @ApiProperty()
+  //   characteristicsTypeId: number;
+  //   @ApiProperty()
+  //   profileCharacteristicsTypeId: number;
+  // }
+
+  export class CharacteristicsPossibleOptionsDto {
     @ApiProperty()
-    characteristicsTypeId: number;
+    characteristicsTypeName: string;
     @ApiProperty()
-    profileCharacteristicsTypeId: number;
+    profileCharacteristicsTypeName: string;
+    @ApiProperty()
+    possibleOptions: string;
+  }
+
+  export class UpdatePossibleOptionsDto {
+    @ApiProperty()
+    updatedPossibleOptions: string;
   }
 
   export class GetOptionsByCharacteristicsNameDto {
@@ -67,6 +93,7 @@ import { IsOptional, IsInt, IsString, IsNotEmpty } from 'class-validator';
     @ApiProperty()
     possibleOptions: string;
   }
+
 
   export class GetCharacteristicsByNameDto {
     @ApiProperty()

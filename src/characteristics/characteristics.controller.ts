@@ -1,8 +1,9 @@
 import { Body, Controller, Post, Get, Put, Logger, Param, Query, ValidationPipe, Delete } from '@nestjs/common';
 import { CharacteristicsService } from './characteristics.service';
-import { CreateCharacteristicsPossibleOptionsDto, CreateCharacteristicsTypeDto, CreateProfileCharacteristicsTypeDto
-, GetOptionsByCharacteristicsDto, CreateCharacteristicsDto, GetCharacteristicsByNameDto, GetOptionsByCharacteristicsNameDto
-, CreateCharacteristicsPossibleOptionsByNameDto,GetOptionsIdDto, UpdateCharacteristicsDto, DeleteCharacteristicsTypeDto } from './dtos/characteristics.dto';
+import {  CreateCharacteristicsTypeDto, CreateProfileCharacteristicsTypeDto, GetOptionsIdDto, CharacteristicsPossibleOptionsDto
+,  CreateCharacteristicsDto, GetCharacteristicsByNameDto, GetOptionsByCharacteristicsNameDto
+, CreateCharacteristicsPossibleOptionsByNameDto, UpdateCharacteristicsDto, DeleteCharacteristicsTypeDto
+, UpdatePossibleOptionsDto} from './dtos/characteristics.dto';
 
 @Controller('characteristics')
 export class CharacteristicsController {
@@ -45,18 +46,29 @@ export class CharacteristicsController {
         return await this.characteristicsService.getProfileCharacteristicsTypes();
     }
 
-    // Create possible options and associate them with a characteristicsType and a profileCharacteristicsType
-    @Post('possibleOptions')
-    async createPossibleOptions(@Body() createOptionsDto: CreateCharacteristicsPossibleOptionsDto) {
-        return await this.characteristicsService.createCharacteristicsPossibleOptions(createOptionsDto);
-    }
+    // // Create possible options and associate them with a characteristicsType and a profileCharacteristicsType
+    // @Post('possibleOptions')
+    // async createPossibleOptions(@Body() createOptionsDto: CreateCharacteristicsPossibleOptionsDto) {
+    //     return await this.characteristicsService.createCharacteristicsPossibleOptions(createOptionsDto);
+    // }
 
     // Create possible options and associate them with a characteristicsType and a profileCharacteristicsType
     @Post('possibleOptionsNameBased')
     async createPossibleOptionsNameBased(@Body(new ValidationPipe()) createOptionsDto: CreateCharacteristicsPossibleOptionsByNameDto) {
-    return await this.characteristicsService.createCharacteristicsPossibleOptionsNameBased(createOptionsDto);
-}
+        return await this.characteristicsService.createCharacteristicsPossibleOptionsNameBased(createOptionsDto);
+    }
 
+    // Delete possible options
+    @Delete('possibleOptions/:characteristicsTypeName/:profileCharacteristicsTypeName/:possibleOptions')
+    async deletePossibleOptions(@Param() params: CharacteristicsPossibleOptionsDto) {
+        return await this.characteristicsService.deletePossibleOptions(params);
+    }
+
+    // Update possible options
+    @Put('possibleOptions/:characteristicsTypeName/:profileCharacteristicsTypeName/:possibleOptions')
+    async updatePossibleOptions(@Param() params: CharacteristicsPossibleOptionsDto, @Body() updateOptionsDto: UpdatePossibleOptionsDto) {
+        return await this.characteristicsService.updatePossibleOptions(params, updateOptionsDto);
+    }
 
     // Get all possible options
     @Get('possibleOptions')
@@ -64,13 +76,13 @@ export class CharacteristicsController {
         return await this.characteristicsService.getAllPossibleOptions();
     } 
     
-    // Get Options based on characteristicTypeID and  profileCharacteristicTypeID
-    @Get('possibleOptions/:characteristicsTypeId/:profileCharacteristicsTypeId')
-    async getOptionsByCharacteristics(
-        @Param() params: GetOptionsByCharacteristicsDto,
-    ) {
-        return await this.characteristicsService.getOptionsByCharacteristics(params);
-    }
+    // // Get Options based on characteristicTypeID and  profileCharacteristicTypeID
+    // @Get('possibleOptions/:characteristicsTypeId/:profileCharacteristicsTypeId')
+    // async getOptionsByCharacteristics(
+    //     @Param() params: GetOptionsByCharacteristicsDto,
+    // ) {
+    //     return await this.characteristicsService.getOptionsByCharacteristics(params);
+    // }
 
     // Get Options based on characteristicTypeName and  profileCharacteristicTypeName
     @Get('possibleOptionsNameBased/:characteristicsTypeName/:profileCharacteristicsTypeName')
@@ -80,7 +92,7 @@ export class CharacteristicsController {
         return await this.characteristicsService.getOptionsByCharacteristicsName(params);
     }
 
-    // Options ID based on characteristicTypeName and  profileCharacteristicTypeName and possibleOptions
+    //Options ID based on characteristicTypeName and  profileCharacteristicTypeName and possibleOptions
     @Get('possibleOptionsId')
     async getOptionsByIds(@Query() params: GetOptionsIdDto) {
         return await this.characteristicsService.getOptionsId(params);
