@@ -7,8 +7,8 @@ import { CharacteristicsPossibleOptions } from './entities/CharacteristicsPossib
 import { Characteristics } from './entities/Characteristics';
 import {CreateCharacteristicsTypeDto,CreateProfileCharacteristicsTypeDto,CreateCharacteristicsDto, GetCharacteristicsByNameDto
 , GetOptionsByCharacteristicsNameDto, CreateCharacteristicsPossibleOptionsByNameDto, UpdatePossibleOptionsDto,
-DeleteCharacteristicsTypeDto, GetOptionsIdDto, CharacteristicsPossibleOptionsDto} from './dtos/characteristics.dto';
-import { profile } from 'console';
+DeleteCharacteristicsTypeDto, GetOptionsIdDto, CharacteristicsPossibleOptionsDto, CharacteristicsTypeDto,
+UpdateCharacteristicsTypeDto} from './dtos/characteristics.dto';
 
 
 @Injectable()
@@ -40,6 +40,36 @@ export class CharacteristicsService {
         }
         const characteristicsType = this.characteristicsTypeRepository.create(createCharacteristicsTypeDTO);
         return await this.characteristicsTypeRepository.save(characteristicsType);
+    }
+
+    // Update characteristics type
+    async updateCharacteristicsType(dto: CharacteristicsTypeDto, updateCharacteristicsTypeDto: UpdateCharacteristicsTypeDto): Promise<any> {
+        try {
+            const characteristicsType = await this.characteristicsTypeRepository.findOne({
+                where: {
+                    variable_type: dto.variable_type,
+                },
+            });
+    
+            if (!characteristicsType) {
+                throw new NotFoundException('CharacteristicsType not found');
+            }
+    
+            characteristicsType.variable_type = updateCharacteristicsTypeDto.updatedTypeName;
+    
+            await this.characteristicsTypeRepository.save(characteristicsType);
+    
+            return {
+                status: HttpStatus.OK,
+                message: 'Characteristic Type Updated successfully',
+            };
+        } catch (error) {
+            if (error instanceof NotFoundException) {
+                throw new HttpException(error.message, HttpStatus.NOT_FOUND);
+            } else {
+                throw new HttpException('Internal Server Error', HttpStatus.INTERNAL_SERVER_ERROR);
+            }
+        }
     }
 
     // Delete characteristics type and associated relations
@@ -108,6 +138,36 @@ export class CharacteristicsService {
         return await this.profileCharacteristicsTypeRepository.save(profileCharacteristicsType);
     }
 
+    // Update profile characteristics type
+    async updateProfileCharacteristicsType(dto: CharacteristicsTypeDto, updateProfileCharacteristicsTypeDto: UpdateCharacteristicsTypeDto): Promise<any> {
+        try {
+            const profileCharacteristicsType = await this.profileCharacteristicsTypeRepository.findOne({
+                where: {
+                    profile_characteristic_type: dto.variable_type,
+                },
+            });
+    
+            if (!profileCharacteristicsType) {
+                throw new NotFoundException('ProfileCharacteristicsType not found');
+            }
+    
+            profileCharacteristicsType.profile_characteristic_type = updateProfileCharacteristicsTypeDto.updatedTypeName;
+    
+            await this.profileCharacteristicsTypeRepository.save(profileCharacteristicsType);
+    
+            return {
+                status: HttpStatus.OK,
+                message: 'Profile Characteristic Type Updated successfully',
+            };
+        } catch (error) {
+            if (error instanceof NotFoundException) {
+                throw new HttpException(error.message, HttpStatus.NOT_FOUND);
+            } else {
+                throw new HttpException('Internal Server Error', HttpStatus.INTERNAL_SERVER_ERROR);
+            }
+        }
+    }
+
     // Delete characteristics type and associated relations
     async deleteProfileCharacteristicsType(dto: DeleteCharacteristicsTypeDto): Promise<string> {
         try {
@@ -156,65 +216,6 @@ export class CharacteristicsService {
         return await this.profileCharacteristicsTypeRepository.find();
     }
     
-    // // Create possible options and associate them with a characteristicsType and a profileCharacteristicsType
-    // async createCharacteristicsPossibleOptions(createOptionsDto: CreateCharacteristicsPossibleOptionsDto): Promise<CharacteristicsPossibleOptions> {
-    //     try {
-
-    //         const existingOptions = await this.characteristicsPossibleOptionsRepository.findOne({
-    //             where: {
-    //                 profileCharacteristicsType: {
-    //                     id: createOptionsDto.profileCharacteristicsTypeId,
-    //                 },
-    //                 characteristicsType: {
-    //                     id: createOptionsDto.characteristicsTypeId,
-    //                 },
-    //                 possibleOptions: createOptionsDto.possibleOptions,
-    //             },
-    //         });
-    
-    //         if (existingOptions) {
-    //             const errorMessage = 'Possible Options for that both Characteristic Type and Profile, already exists.';
-    //             throw new HttpException(errorMessage, HttpStatus.CONFLICT);
-    //         }
-
-    //         const characteristicsType = await this.characteristicsTypeRepository.findOne({
-    //             where: {
-    //                 id: createOptionsDto.characteristicsTypeId,
-    //             },
-    //         });
-    //         const profileCharacteristicsType = await this.profileCharacteristicsTypeRepository.findOne({
-    //             where: {
-    //                 id: createOptionsDto.profileCharacteristicsTypeId,
-    //             },
-    //         });
-    //         // Check if both entities are found
-    //         if (!characteristicsType || !profileCharacteristicsType) {
-    //             throw new NotFoundException('ProfileCharacteristicsType or CharacteristicsType not found');
-    //         }
-    //         const characteristicsPossibleOptions = this.characteristicsPossibleOptionsRepository.create({
-    //             profileCharacteristicsType: [profileCharacteristicsType], // Note the array syntax
-    //             characteristicsType: [characteristicsType], // Note the array syntax
-    //             possibleOptions: createOptionsDto.possibleOptions,
-    //         });
-
-    //         // Save the new entity
-    //         console.log(characteristicsPossibleOptions)
-    //         const savedOptions = await this.characteristicsPossibleOptionsRepository.save(characteristicsPossibleOptions);
-    //         // const result = 'Request processed successfully';
-    //         return characteristicsPossibleOptions;
-            
-    //     }
-    //     catch (error) {
-    //         if (error instanceof NotFoundException) {
-    //             // Handle not found errors, you may want to return a 404 response or handle it differently
-    //             throw new NotFoundException('ProfileCharacteristicsType or CharacteristicsType not found');
-    //         } else {
-    //             // Handle other types of errors (e.g., conflict)
-    //             throw error;
-    //         }
-    //     }
-    // }
-
     // Create possible options and associate them with a characteristicsType and a profileCharacteristicsType
     async createCharacteristicsPossibleOptionsNameBased(createOptionsDto: CreateCharacteristicsPossibleOptionsByNameDto): Promise<CharacteristicsPossibleOptions> {
         try {
@@ -378,31 +379,6 @@ export class CharacteristicsService {
             throw new NotFoundException('Failed to retrieve options', error);
         }
     }
-
-    // Get Options based on characteristicTypeID and  profileCharacteristicTypeID
-    // async getOptionsByCharacteristics(params: GetOptionsByCharacteristicsDto): Promise<CharacteristicsPossibleOptions[]> {
-    //     try {
-    //         const options = await this.characteristicsPossibleOptionsRepository.find({
-    //             where: {
-    //                 characteristicsType: { id: params.characteristicsTypeId },
-    //                 profileCharacteristicsType: { id: params.profileCharacteristicsTypeId },
-    //             },
-    //             relations: [
-    //                 'profileCharacteristicsType',
-    //                 'characteristicsType'
-    //             ],
-    //         });
-    
-    //         if (!options || options.length === 0) {
-    //             throw new NotFoundException('No options found for the given IDs');
-    //         }
-    
-    //         return options;
-    //     } catch (error) {
-    //         this.logger.error('Error retrieving options', error);
-    //         throw new NotFoundException('Failed to retrieve options', error);
-    //     }
-    // }
 
     // Get Options based on characteristicTypeName and  profileCharacteristicTypeName
     async getOptionsByCharacteristicsName(params: GetOptionsByCharacteristicsNameDto): Promise<CharacteristicsPossibleOptions[]> {

@@ -8,21 +8,24 @@ import { IsOptional, IsInt, IsString, IsNotEmpty } from 'class-validator';
     variable_type: string;
   }
 
+  export class CharacteristicsTypeDto {
+    @ApiProperty()
+    @IsNotEmpty({ message: 'Characteristic type cannot be empty' })
+    variable_type: string;
+  }
+
+  export class UpdateCharacteristicsTypeDto {
+    @ApiProperty()
+    @IsNotEmpty({ message: 'Updated Characteristic type cannot be empty' })
+    updatedTypeName: string;
+  }
+
   
   export class CreateProfileCharacteristicsTypeDto {
     @ApiProperty()
     @IsNotEmpty({ message: 'Profile Characteristic type cannot be empty' })
     profile_characteristic_type: string;
   }
-  
-  // export class CreateCharacteristicsPossibleOptionsDto {
-  //   @ApiProperty()
-  //   profileCharacteristicsTypeId: number;
-  //   @ApiProperty()
-  //   characteristicsTypeId: number;
-  //   @ApiProperty()
-  //   possibleOptions: string;
-  // }
 
   export class CreateCharacteristicsPossibleOptionsByNameDto {
     @ApiProperty()
@@ -56,13 +59,6 @@ import { IsOptional, IsInt, IsString, IsNotEmpty } from 'class-validator';
     @ApiProperty()
     characteristicsPossibleOptionsId: number;
   }
-
-  // export class GetOptionsByCharacteristicsDto {
-  //   @ApiProperty()
-  //   characteristicsTypeId: number;
-  //   @ApiProperty()
-  //   profileCharacteristicsTypeId: number;
-  // }
 
   export class CharacteristicsPossibleOptionsDto {
     @ApiProperty()
