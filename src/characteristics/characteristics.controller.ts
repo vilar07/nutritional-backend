@@ -4,7 +4,8 @@ import {  CreateCharacteristicsTypeDto, CreateProfileCharacteristicsTypeDto, Get
 ,  CreateCharacteristicsDto, GetCharacteristicsByNameDto, GetOptionsByCharacteristicsNameDto
 , CreateCharacteristicsPossibleOptionsByNameDto, UpdateCharacteristicsTypeDto, DeleteCharacteristicsTypeDto
 , UpdatePossibleOptionsDto,
-CharacteristicsTypeDto} from './dtos/characteristics.dto';
+CharacteristicsTypeDto,
+UpdateCharacteristicsDto} from './dtos/characteristics.dto';
 
 @Controller('characteristics')
 export class CharacteristicsController {
@@ -115,6 +116,18 @@ export class CharacteristicsController {
     @Post('characteristics')
     async createCharacteristics(@Body() createCharacteristicsDto: CreateCharacteristicsDto) {
         return await this.characteristicsService.createCharacteristics(createCharacteristicsDto);
+    }
+
+    // Update characteristics
+    @Put('characteristics/:name')
+    async updateCharacteristics(@Param() params: GetCharacteristicsByNameDto, @Body() dto: UpdateCharacteristicsDto) {
+        return await this.characteristicsService.updateCharacteristics(params, dto);
+    }
+
+    // Delete characteristics
+    @Delete('characteristics/:name')
+    async deleteCharacteristics(@Param() params: GetCharacteristicsByNameDto) {
+        return await this.characteristicsService.deleteCharacteristics(params);
     }
     
 

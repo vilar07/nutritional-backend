@@ -8,7 +8,8 @@ import { Characteristics } from './entities/Characteristics';
 import {CreateCharacteristicsTypeDto,CreateProfileCharacteristicsTypeDto,CreateCharacteristicsDto, GetCharacteristicsByNameDto
 , GetOptionsByCharacteristicsNameDto, CreateCharacteristicsPossibleOptionsByNameDto, UpdatePossibleOptionsDto,
 DeleteCharacteristicsTypeDto, GetOptionsIdDto, CharacteristicsPossibleOptionsDto, CharacteristicsTypeDto,
-UpdateCharacteristicsTypeDto} from './dtos/characteristics.dto';
+UpdateCharacteristicsTypeDto,
+UpdateCharacteristicsDto} from './dtos/characteristics.dto';
 
 
 @Injectable()
@@ -478,8 +479,13 @@ export class CharacteristicsService {
         try {
             const characteristicsList = await this.characteristicsRepository.find({
                 relations: [
-                    'characteristicsPossibleOptions'
+                    'characteristicsPossibleOptions',
+                    'characteristicsPossibleOptions.profileCharacteristicsType',
+                    'characteristicsPossibleOptions.characteristicsType'
                 ],
+                order: {
+                    name: 'ASC',
+                },
             });
 
             if (!characteristicsList || characteristicsList.length === 0) {
@@ -515,6 +521,71 @@ export class CharacteristicsService {
         } catch (error) {
             this.logger.error('Error retrieving characteristic', error);
             throw new NotFoundException('Failed to retrieve characteristic', error);
+        }
+    }
+
+    // Update characteristics
+    async updateCharacteristics(dto: GetCharacteristicsByNameDto, updateCharacteristicsDto: UpdateCharacteristicsDto): Promise<any> {
+        try {
+            const characteristics = await this.characteristicsRepository.findOne({
+                where: {
+                    name: dto.name,
+                },
+                relations: [
+                    'characteristicsPossibleOptions',
+                    'characteristicsPossibleOptions.profileCharacteristicsType',
+                    'characteristicsPossibleOptions.characteristicsType'
+                ],
+            });
+    
+            if (!characteristics) {
+                throw new NotFoundException('Characteristics not found');
+            }
+    
+            characteristics.name = updateCharacteristicsDto.name;
+            characteristics.category = updateCharacteristicsDto.category;
+            characteristics.characteristicsPossibleOptions.id = updateCharacteristicsDto.characteristicsPossibleOptionsId;
+    
+            await this.characteristicsRepository.save(characteristics);
+    
+            return {
+                status: HttpStatus.OK,
+                message: 'Characteristics updated successfully',
+            };
+        } catch (error) {
+            if (error instanceof NotFoundException) {
+                throw new HttpException(error.message, HttpStatus.NOT_FOUND);
+            } else {
+                throw new HttpException('Internal Server Error', HttpStatus.INTERNAL_SERVER_ERROR);
+            }
+        }
+    }
+
+    // Delete characteristics
+    async deleteCharacteristics(params: GetCharacteristicsByNameDto): Promise<any> {
+        try {
+            const characteristics = await this.characteristicsRepository.findOne({
+                where: {
+                    name: params.name,
+                },
+            });
+    
+            if (!characteristics) {
+                throw new NotFoundException('Characteristics not found');
+            }
+    
+            await this.characteristicsRepository.remove(characteristics);
+    
+            return {
+                status: HttpStatus.OK,
+                message: 'Characteristics deleted successfully',
+            };
+        } catch (error) {
+            if (error instanceof NotFoundException) {
+                throw new HttpException(error.message, HttpStatus.NOT_FOUND);
+            } else {
+                throw new HttpException('Internal Server Error', HttpStatus.INTERNAL_SERVER_ERROR);
+            }
         }
     }
 

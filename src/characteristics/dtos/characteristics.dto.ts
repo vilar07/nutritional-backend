@@ -60,6 +60,15 @@ import { IsOptional, IsInt, IsString, IsNotEmpty } from 'class-validator';
     characteristicsPossibleOptionsId: number;
   }
 
+  export class UpdateCharacteristicsDto {
+    @ApiProperty()
+    name: string | null;
+    @ApiProperty()
+    category: string | null;
+    @ApiProperty()
+    characteristicsPossibleOptionsId: number | null;
+  }
+
   export class CharacteristicsPossibleOptionsDto {
     @ApiProperty()
     characteristicsTypeName: string;
@@ -94,19 +103,6 @@ import { IsOptional, IsInt, IsString, IsNotEmpty } from 'class-validator';
   export class GetCharacteristicsByNameDto {
     @ApiProperty()
     name: string;
-  }
-
-  export class UpdateCharacteristicsDto {
-    @ApiProperty()
-    @IsString({ message: 'Invalid characteristics type name' })
-    characteristicsTypeName: string;
-
-    @ApiProperty()
-    @IsString({ message: 'Invalid profile characteristics type name' })
-    profileCharacteristicsTypeName: string;
-
-    @ApiProperty()
-    characteristicsPossibleOptionsId: number;
   }
 
   export class DeleteCharacteristicsTypeDto {
