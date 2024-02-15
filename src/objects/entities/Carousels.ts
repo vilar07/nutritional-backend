@@ -2,6 +2,7 @@ import { Entity, PrimaryGeneratedColumn, Column, ManyToMany, JoinTable} from "ty
 import { Characteristics } from "../../characteristics/entities/Characteristics";
 import { ActivateWhen } from "../entities/ActivateWhen";
 import { ActivateUntil } from "../entities/ActivateUntil";
+import { ObjectCharacteristicsAssociation } from "./ObjectCharacteristicsAssociation";
 
 @Entity('carousels')
 export class Carousels{
@@ -26,4 +27,7 @@ export class Carousels{
     @ManyToMany(() => ActivateUntil, activateUntil => activateUntil.carousels)
     @JoinTable()
     activate_untils: ActivateUntil[];
+
+    @ManyToMany(() => ObjectCharacteristicsAssociation, objectCharacteristicsAssociations => objectCharacteristicsAssociations.carousels)
+    objectCharacteristicsAssociations: ObjectCharacteristicsAssociation[];
 }

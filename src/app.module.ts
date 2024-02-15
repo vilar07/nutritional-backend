@@ -17,6 +17,7 @@ import { Calculators } from './objects/entities/Calculators';
 import { Carousels } from './objects/entities/Carousels';
 import { Forms } from './objects/entities/Forms';
 import { MealCards } from './objects/entities/MealCards';
+import { ObjectCharacteristicsAssociation } from './objects/entities/ObjectCharacteristicsAssociation';
 
 
 @Module({
@@ -29,7 +30,7 @@ import { MealCards } from './objects/entities/MealCards';
       password: "vilarinho08",
       database: "nutritionalService",
       entities: [User, Characteristics, ProfileCharacteristicsType, CharacteristicsType, CharacteristicsPossibleOptions,
-      ActivateWhen, ActivateUntil, Articles, Calculators, Carousels, Forms, MealCards
+      ActivateWhen, ActivateUntil, Articles, Calculators, Carousels, Forms, MealCards, ObjectCharacteristicsAssociation
       ],
       synchronize: false,
       logging: true,
