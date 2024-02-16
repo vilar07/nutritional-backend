@@ -6,7 +6,9 @@ import {  CreateCharacteristicsTypeDto, CreateProfileCharacteristicsTypeDto, Get
 , UpdatePossibleOptionsDto,
 CharacteristicsTypeDto,
 UpdateCharacteristicsDto} from './dtos/characteristics.dto';
+import { ApiTags } from '@nestjs/swagger';
 
+@ApiTags('Characteristics')
 @Controller('characteristics')
 export class CharacteristicsController {
     private readonly logger = new Logger(CharacteristicsController.name);
