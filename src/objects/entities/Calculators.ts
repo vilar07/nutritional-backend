@@ -21,16 +21,10 @@ export class Calculators {
   @Column({ type: 'varchar' })
   equation: string;
 
-  @ManyToMany(() => Characteristics, characteristics => characteristics.calculators)
-  @JoinTable()
-  characteristic_meaning_of_clicking: Characteristics[];
-
   @ManyToMany(() => ActivateWhen, activateWhen => activateWhen.calculators)
-  @JoinTable()
   activate_whens: ActivateWhen[];
 
   @ManyToMany(() => ActivateUntil, activateUntil => activateUntil.calculators)
-  @JoinTable()
   activate_untils: ActivateUntil[];
 
   @ManyToMany(() => ObjectCharacteristicsAssociation, objectCharacteristicsAssociations => objectCharacteristicsAssociations.calculators)

@@ -3,7 +3,7 @@ import { InjectRepository } from '@nestjs/typeorm';
 import { Repository, In } from 'typeorm';
 import { Articles } from './entities/Articles';
 import { HttpStatus } from '@nestjs/common';
-import { GetObjectByIDdto } from './dtos/objects.dto';
+import { GetObjectByIDdto, createArticleDTO } from './dtos/objects.dto';
 
 
 
@@ -13,6 +13,7 @@ export class ObjectsService {
     constructor(
         @InjectRepository(Articles)
         private readonly articlesRepository: Repository<Articles>,
+
     ) {}
 
     async getArticles() {
@@ -44,5 +45,25 @@ export class ObjectsService {
         };
     }
 
+    async createArticle(body: createArticleDTO): Promise<any> {
+        const existingArticle = await this.articlesRepository.findOne({
+            where: {title: body.title},
+        });
+        if (existingArticle) {
+            return {
+                status: HttpStatus.CONFLICT,
+                message: 'Article already exists',
+            };
+        }
 
+        const article = this.articlesRepository.create({
+            title: body.title,
+            subtitle: body.subtitle,
+        });
+        await this.articlesRepository.save(article);
+        return {
+            status: HttpStatus.CREATED,
+            message: 'Article created',
+        };
+    }
 }

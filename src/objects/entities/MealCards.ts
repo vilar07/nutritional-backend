@@ -24,16 +24,10 @@ export class MealCards {
   @Column({ type: 'varchar' })
   type_of_recipe: string;
 
-  @ManyToMany(() => Characteristics, characteristics => characteristics.mealCards)
-  @JoinTable()
-  characteristic_meaning_of_clicking: Characteristics[];
-
   @ManyToMany(() => ActivateWhen, activateWhen => activateWhen.mealCards)
-  @JoinTable()
   activate_whens: ActivateWhen[];
 
   @ManyToMany(() => ActivateUntil, activateUntil => activateUntil.mealCards)
-  @JoinTable()
   activate_untils: ActivateUntil[];
 
   @ManyToMany(() => ObjectCharacteristicsAssociation, objectCharacteristicsAssociations => objectCharacteristicsAssociations.mealCards)

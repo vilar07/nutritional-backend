@@ -16,16 +16,10 @@ export class Carousels{
     @Column({ type: 'varchar' })
     link: string;
 
-    @ManyToMany(() => Characteristics, characteristics => characteristics.carousels)
-    @JoinTable()
-    characteristic_meaning_of_clicking: Characteristics[];
-
     @ManyToMany(() => ActivateWhen, activateWhen => activateWhen.carousels)
-    @JoinTable()
     activate_whens: ActivateWhen[];
 
     @ManyToMany(() => ActivateUntil, activateUntil => activateUntil.carousels)
-    @JoinTable()
     activate_untils: ActivateUntil[];
 
     @ManyToMany(() => ObjectCharacteristicsAssociation, objectCharacteristicsAssociations => objectCharacteristicsAssociations.carousels)

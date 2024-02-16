@@ -32,23 +32,8 @@ export class Characteristics {
   objectCharacteristicsAssociations: ObjectCharacteristicsAssociation[];
 
   @ManyToMany(() => ActivateWhen, activateWhen => activateWhen.characteristics)
-  activateWhens: ActivateWhen[];
+  activate_whens: ActivateWhen[];
 
   @ManyToMany(() => ActivateUntil, activateUntil => activateUntil.characteristics)
-  activateUntils: ActivateUntil[];
-
-  @ManyToMany(() => Carousels, carousels => carousels.characteristic_meaning_of_clicking)
-  carousels: Carousels[];
-
-  @ManyToMany(() => MealCards, mealCards => mealCards.characteristic_meaning_of_clicking)
-  mealCards: MealCards[];
-
-  @ManyToMany(() => Calculators, calculators => calculators.characteristic_meaning_of_clicking)
-  calculators: Calculators[];
-
-  @ManyToMany(() => Articles, articles => articles.characteristic_meaning_of_clicking)
-  articles: Articles[];
-
-  @ManyToMany(() => Forms, forms => forms.characteristic_meaning_of_clicking)
-  forms: Forms[];
+  activate_untils: ActivateUntil[];
 }

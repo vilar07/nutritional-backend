@@ -13,23 +13,22 @@ export class ActivateWhen{
   
     @Column({ type: 'datetime', nullable: true })
     datetime_value: Date;
-  
-    @ManyToMany(() => Characteristics, characteristics => characteristics.activateWhens)
-    @JoinTable()
-    characteristics: Characteristics[]; 
+
+    @ManyToMany(() => Characteristics, characteristics => characteristics.activate_whens)
+    characteristics: Characteristics[];
 
     @ManyToMany(() => Carousels, carousels => carousels.activate_whens)
     carousels: Carousels[];
 
-    @ManyToMany(() => MealCards, mealCards => mealCards.characteristic_meaning_of_clicking)
+    @ManyToMany(() => MealCards, mealCards => mealCards.activate_whens)
     mealCards: MealCards[];
 
-    @ManyToMany(() => Calculators, calculators => calculators.characteristic_meaning_of_clicking)
+    @ManyToMany(() => Calculators, calculators => calculators.activate_whens)
     calculators: Calculators[];
 
-    @ManyToMany(() => Articles, articles => articles.characteristic_meaning_of_clicking)
+    @ManyToMany(() => Articles, articles => articles.activate_whens)
     articles: Articles[];
 
-    @ManyToMany(() => Forms, forms => forms.characteristic_meaning_of_clicking)
+    @ManyToMany(() => Forms, forms => forms.activate_whens)
     forms: Forms[];
 }

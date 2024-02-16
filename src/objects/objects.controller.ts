@@ -1,6 +1,6 @@
-import { Controller, Get, Logger, Post, Param } from '@nestjs/common';
+import { Controller, Get, Logger, Post, Param, Body } from '@nestjs/common';
 import { ObjectsService } from './objects.service';
-import { GetObjectByIDdto } from './dtos/objects.dto';
+import { GetObjectByIDdto, createArticleDTO } from './dtos/objects.dto';
 import { ApiTags } from '@nestjs/swagger';
 
 @ApiTags('Objects')
@@ -21,5 +21,12 @@ export class ObjectsController {
         return await this.objectsService.getArticle(params);
     }
 
+    @Post('article')
+    async createArticle(
+        @Body() body: createArticleDTO
+    )
+    {
+        return await this.objectsService.createArticle(body);
+    }
 
 }

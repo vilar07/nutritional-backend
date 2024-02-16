@@ -13,12 +13,11 @@ export class ActivateUntil{
   
     @Column({ type: 'datetime', nullable: true })
     datetime_value: Date;
-  
-    @ManyToMany(() => Characteristics, characteristics => characteristics.activateUntils)
-    @JoinTable()
+
+    @ManyToMany(() => Characteristics, characteristics => characteristics.activate_untils)
     characteristics: Characteristics[];
     
-    @ManyToMany(() => Carousels, carousels => carousels.activate_whens)
+    @ManyToMany(() => Carousels, carousels => carousels.activate_untils)
     carousels: Carousels[];
 
     @ManyToMany(() => MealCards, mealCards => mealCards.activate_untils)

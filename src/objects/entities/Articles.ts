@@ -15,16 +15,10 @@ export class Articles {
   @Column({ type: 'varchar' })
   subtitle: string;
 
-  @ManyToMany(() => Characteristics, characteristics => characteristics.articles)
-  @JoinTable()
-  characteristic_meaning_of_clicking: Characteristics[];
-
   @ManyToMany(() => ActivateWhen, activateWhen => activateWhen.articles)
-  @JoinTable()
   activate_whens: ActivateWhen[];
 
   @ManyToMany(() => ActivateUntil, activateUntil => activateUntil.articles)
-  @JoinTable()
   activate_untils: ActivateUntil[];
 
   @ManyToMany(() => ObjectCharacteristicsAssociation, objectCharacteristicsAssociations => objectCharacteristicsAssociations.articles)
