@@ -15,6 +15,12 @@ export class Articles {
   @Column({ type: 'varchar' })
   subtitle: string;
 
+  @Column({ type: 'text' })
+  description: string;
+
+  @Column({ type: 'varchar', nullable: true })
+  image: string;
+
   @ManyToMany(() => ActivateWhen, activateWhen => activateWhen.articles)
   activate_whens: ActivateWhen[];
 

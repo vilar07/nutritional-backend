@@ -8,7 +8,7 @@ import { IsOptional, IsInt, IsString, IsNotEmpty } from 'class-validator';
         id: number;
     }
 
-    export class createArticleDTO {
+    export class CreateArticleDTO {
         @ApiProperty()
         @IsNotEmpty({ message: 'Title cannot be empty' })
         title: string;
@@ -17,4 +17,7 @@ import { IsOptional, IsInt, IsString, IsNotEmpty } from 'class-validator';
         @IsNotEmpty({ message: 'Subtitle cannot be empty' })
         subtitle: string;
 
+        @ApiProperty()
+        @IsNotEmpty({ message: 'Description cannot be empty' })
+        description: string;
     }
