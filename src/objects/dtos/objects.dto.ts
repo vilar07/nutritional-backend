@@ -21,3 +21,24 @@ import { IsOptional, IsInt, IsString, IsNotEmpty } from 'class-validator';
         @IsNotEmpty({ message: 'Description cannot be empty' })
         description: string;
     }
+
+    export class AssociateObjectDTO {
+        @ApiProperty()
+        @IsNotEmpty({ message: 'Object Type cannot be empty' })
+        objectType: string;
+
+        @ApiProperty()
+        @IsNotEmpty({ message: 'Title cannot be empty' })
+        title: string;
+
+        @ApiProperty()
+        @IsNotEmpty({ message: 'Characteristic cannot be empty' })
+        characteristic: string;
+    }
+
+    export class AssociateObjectOptionDTO {
+
+        @ApiProperty()
+        @IsNotEmpty({ message: 'Option cannot be empty' })
+        option: string;
+    }

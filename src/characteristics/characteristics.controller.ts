@@ -67,7 +67,7 @@ export class CharacteristicsController {
      async getAllPossibleOptions() {
          return await this.characteristicsService.getAllPossibleOptions();
      } 
- 
+
      // Get Options based on characteristicTypeName and  profileCharacteristicTypeName
      @Get('possibleOptionsNameBased/:characteristicsTypeName/:profileCharacteristicsTypeName')
      async getOptionsByCharacteristicsName(

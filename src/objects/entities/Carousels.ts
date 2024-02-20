@@ -16,6 +16,9 @@ export class Carousels{
     @Column({ type: 'varchar' })
     link: string;
 
+    @Column({ type: 'timestamp', default: () => 'CURRENT_TIMESTAMP' })
+    created_at: Date;
+
     @ManyToMany(() => ActivateWhen, activateWhen => activateWhen.carousels)
     activate_whens: ActivateWhen[];
 

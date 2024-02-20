@@ -10,6 +10,7 @@ import { Carousels } from './entities/Carousels';
 import { Forms } from './entities/Forms';
 import { MealCards } from './entities/MealCards';
 import { ObjectCharacteristicsAssociation } from './entities/ObjectCharacteristicsAssociation';
+import { Characteristics } from 'src/characteristics/entities/Characteristics';
 
 
 @Module({
@@ -23,6 +24,7 @@ import { ObjectCharacteristicsAssociation } from './entities/ObjectCharacteristi
       Forms,
       MealCards,
       ObjectCharacteristicsAssociation,
+      Characteristics
     ]),
   ],
   controllers: [ObjectsController],

@@ -15,6 +15,9 @@ export class Forms {
   @Column({ type: 'varchar' })
   subtitle: string;
 
+  @Column({ type: 'timestamp', default: () => 'CURRENT_TIMESTAMP' })
+  created_at: Date;
+
   @ManyToMany(() => ActivateWhen, activateWhen => activateWhen.forms)
   activate_whens: ActivateWhen[];
 

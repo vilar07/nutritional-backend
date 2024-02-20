@@ -1,6 +1,6 @@
 import { Controller, Get, Logger, Post, Param, Body } from '@nestjs/common';
 import { ObjectsService } from './objects.service';
-import { GetObjectByIDdto, CreateArticleDTO } from './dtos/objects.dto';
+import { GetObjectByIDdto, CreateArticleDTO, AssociateObjectDTO, AssociateObjectOptionDTO } from './dtos/objects.dto';
 import { ApiTags } from '@nestjs/swagger';
 import { FileInterceptor } from '@nestjs/platform-express';
 import { UseInterceptors, UploadedFile } from '@nestjs/common';
@@ -34,6 +34,11 @@ export class ObjectsController {
             description: req.body.description // Assuming description is also sent in the form-data
         };
         return await this.objectsService.createArticle(createArticleDTO, image);
+    }
+
+    @Post('associate/:objectType/:title/:characteristic')
+    async associateArticle(@Param() params: AssociateObjectDTO, @Body() option: AssociateObjectOptionDTO ) {
+        return await this.objectsService.associateObject(params, option);
     }
 
 }

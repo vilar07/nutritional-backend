@@ -110,5 +110,4 @@ import { IsOptional, IsInt, IsString, IsNotEmpty } from 'class-validator';
     @ApiProperty()
     typeName: string;
   }
-
   

@@ -21,6 +21,9 @@ export class Calculators {
   @Column({ type: 'varchar' })
   equation: string;
 
+  @Column({ type: 'timestamp', default: () => 'CURRENT_TIMESTAMP' })
+  created_at: Date;
+
   @ManyToMany(() => ActivateWhen, activateWhen => activateWhen.calculators)
   activate_whens: ActivateWhen[];
 

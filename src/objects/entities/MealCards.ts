@@ -24,6 +24,9 @@ export class MealCards {
   @Column({ type: 'varchar' })
   type_of_recipe: string;
 
+  @Column({ type: 'timestamp', default: () => 'CURRENT_TIMESTAMP' })
+  created_at: Date;
+
   @ManyToMany(() => ActivateWhen, activateWhen => activateWhen.mealCards)
   activate_whens: ActivateWhen[];
 
