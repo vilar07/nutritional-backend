@@ -5,9 +5,8 @@ import { Articles } from './entities/Articles';
 import { ObjectCharacteristicsAssociation } from './entities/ObjectCharacteristicsAssociation';
 import { Characteristics } from 'src/characteristics/entities/Characteristics';
 import { HttpStatus } from '@nestjs/common';
-import { GetObjectByIDdto, CreateArticleDTO, AssociateObjectDTO, AssociateObjectOptionDTO } from './dtos/objects.dto';
-import { existsSync, mkdir,createReadStream, createWriteStream } from 'fs';
-import { join } from 'path';
+import { GetObjectByIDdto, CreateArticleDTO, AssociateObjectDTO, AssociateObjectOptionDTO, UpdateArticleDTO,
+UpdateAssociationDTO, AssociationItemDTO } from './dtos/objects.dto';
 import * as fs from 'fs-extra';
 import cloudinary from 'src/cloudinary.config';
 import { HttpException } from '@nestjs/common';
@@ -42,7 +41,9 @@ export class ObjectsService {
     async getArticle(params: GetObjectByIDdto): Promise<any> {
         const article = await this.articlesRepository.findOne({
             where: {ID: params.id},
+            relations: ['objectCharacteristicsAssociations', 'objectCharacteristicsAssociations.characteristics'],
         })
+        
         if (!article) {
             return {
                 status: HttpStatus.NOT_FOUND,
@@ -99,48 +100,136 @@ export class ObjectsService {
         }
     }
 
-    async associateObject(params: AssociateObjectDTO, option: AssociateObjectOptionDTO): Promise<any> {
-        try{
-            switch(params.objectType){
+    async updateArticle(id: number, articleData: UpdateArticleDTO, image: Express.Multer.File): Promise<any> {
+        try {
+            const article = await this.articlesRepository.findOne(
+                {where: {ID: id}}
+            );
+            if (!article) {
+                throw new NotFoundException('Article not found');
+            }
+    
+            // If image is provided, update the image
+            if (image) {
+                // Save the new image buffer to a temporary file
+                const tempFilePath = './file.png'; // Provide the path to a temporary file
+                fs.writeFileSync(tempFilePath, image.buffer);
+    
+                // Upload the temporary file to Cloudinary
+                const result = await cloudinary.uploader.upload(tempFilePath, {
+                    folder: 'articles', // Optional: specify a folder in Cloudinary
+                });
+    
+                // Update article with new Cloudinary image URL
+                article.image = result.secure_url;
+    
+                // Delete the temporary file
+                fs.unlinkSync(tempFilePath);
+            }
+    
+            // Update other fields if provided
+            if (articleData.title) {
+                article.title = articleData.title;
+            }
+            if (articleData.subtitle) {
+                article.subtitle = articleData.subtitle;
+            }
+            if (articleData.description) {
+                article.description = articleData.description;
+            }
+    
+            // Save the updated article to the database
+            await this.articlesRepository.save(article);
+    
+            return {
+                status: HttpStatus.OK,
+                message: 'Article updated',
+            };
+        } catch (error) {
+            if (error instanceof NotFoundException) {
+                throw new NotFoundException('Error updating article');
+            } else {
+                throw error;
+            }
+        }
+    }
+
+    async deleteArticle(id: number): Promise<any> {
+        try {
+            const article = await this.articlesRepository.findOne(
+                {
+                    where: {ID: id},
+                    relations: ['objectCharacteristicsAssociations'],
+                },
+            );
+            if (!article) {
+                throw new NotFoundException('Article not found');
+            }
+
+            // Delete associations
+            await this.objectCharacteristicsAssociationRepository.remove(article.objectCharacteristicsAssociations);
+
+            // // Delete the article from the database
+            await this.articlesRepository.remove(article);
+    
+            return {
+                status: HttpStatus.OK,
+                message: 'Article deleted',
+            };
+        } catch (error) {
+            if (error instanceof NotFoundException) {
+                throw new NotFoundException('Error deleting article');
+            } else {
+                throw error;
+            }
+        }
+    }
+
+    async associateObject(params: AssociateObjectDTO, associations: AssociationItemDTO[]): Promise<any> {
+        try {
+            switch (params.objectType) {
                 case 'article':
-                    const existingAssociationOption = await this.objectCharacteristicsAssociationRepository.findOne({
-                        where: {
-                            characteristics: {name: params.characteristic},
-                            articles: {title: params.title},
-                            option_selected: option.option,
-                        },
-                    });
-                    if (existingAssociationOption) {
-                        const errorMessage = 'Article already associated with that characteristic and option.';
-                        throw new HttpException(errorMessage, HttpStatus.CONFLICT);
-                    }
-                    const article = await this.articlesRepository.findOne({
-                        where: {title: params.title},
-                    });
+                    const article = await this.articlesRepository.findOne({ where: { title: params.title } });
                     if (!article) {
-                        const errorMessage = 'Article with that title doesnt exist.';
-                        throw new HttpException(errorMessage, HttpStatus.NOT_FOUND);
+                        throw new HttpException('Article with that title does not exist.', HttpStatus.NOT_FOUND);
                     }
-                    const characteristic = await this.characteristicRepository.findOne({
-                        where: {name: params.characteristic},
-                    });
-                    if (!characteristic) {
-                        const errorMessage = 'Characteristic with that name doesnt exist.';
-                        throw new HttpException(errorMessage, HttpStatus.NOT_FOUND);
+                   
+                    for (const association of associations) {
+                        const characteristic = await this.characteristicRepository.findOne({ where: { name: association.characteristic } });
+                        if (!characteristic) {
+                            throw new HttpException(`Characteristic "${association.characteristic}" does not exist.`, HttpStatus.NOT_FOUND);
+                        }
+                        
+                        for (const optionName of association.options) {
+                            const existingAssociation = await this.objectCharacteristicsAssociationRepository.findOne({
+                                where: {
+                                    characteristics: characteristic,
+                                    articles: article,
+                                    option_selected: optionName,
+                                },
+                                relations: ['characteristics', 'articles'],
+                            });
+    
+                            if (existingAssociation) {
+                                continue; // Skip if association already exists
+                            }
+                            
+                            const objectCharacteristicsAssociation = this.objectCharacteristicsAssociationRepository.create({
+                                option_selected: optionName,
+                                characteristics: [characteristic],
+                                articles: [article],
+                            });
+                            await this.objectCharacteristicsAssociationRepository.save(objectCharacteristicsAssociation);
+                        }
                     }
-                    const objectCharacteristicsAssociation = this.objectCharacteristicsAssociationRepository.create({
-                        option_selected: option.option,
-                        characteristics: [characteristic],
-                        articles: [article],
-                    });
-                    await this.objectCharacteristicsAssociationRepository.save(objectCharacteristicsAssociation);
+    
+                    // Return a success message if all associations are created successfully
                     return {
                         status: HttpStatus.CREATED,
-                        message: 'Article associated',
+                        message: 'All associations created',
                     };
                 default:
-                    const errorMessage = 'Object type not found';
-                    throw new HttpException(errorMessage, HttpStatus.NOT_FOUND);
+                    throw new HttpException('Object type not found', HttpStatus.NOT_FOUND);
             }
         } catch (error) {
             if (error instanceof NotFoundException) {
@@ -149,6 +238,57 @@ export class ObjectsService {
                 throw error;
             }
         }
-    }    
+    }
+
+    async updateAssociations(params: UpdateAssociationDTO, associations: AssociationItemDTO[]): Promise<any> {
+        try {
+            switch (params.objectType) {
+                case 'article':
+                    const article = await this.articlesRepository.findOne({ where: { title: params.title } });
+                    if (!article) {
+                        throw new HttpException('Article with that title does not exist.', HttpStatus.NOT_FOUND);
+                    }
+    
+                    // Find the existing associations for the specified article
+                    const associationsToDelete = await this.objectCharacteristicsAssociationRepository.find({
+                        where: { articles: article },
+                    });
+
+                    // Delete the existing associations
+                    await this.objectCharacteristicsAssociationRepository.remove(associationsToDelete);
+                    console.log("existing associations deleted successfully")
+    
+                    // Create new associations based on the provided associations
+                    for (const association of associations) {
+                        const characteristic = await this.characteristicRepository.findOne({ where: { name: association.characteristic } });
+                        if (!characteristic) {
+                            throw new HttpException(`Characteristic "${association.characteristic}" does not exist.`, HttpStatus.NOT_FOUND);
+                        }
+    
+                        for (const optionName of association.options) {
+                            const objectCharacteristicsAssociation = this.objectCharacteristicsAssociationRepository.create({
+                                option_selected: optionName,
+                                characteristics: [characteristic],
+                                articles: [article],
+                            });
+                            await this.objectCharacteristicsAssociationRepository.save(objectCharacteristicsAssociation);
+                        }
+                    }
+    
+                    return {
+                        status: HttpStatus.OK,
+                        message: 'Associations updated successfully',
+                    };
+                default:
+                    throw new HttpException('Object type not found', HttpStatus.NOT_FOUND);
+            }
+        } catch (error) {
+            if (error instanceof NotFoundException) {
+                throw new NotFoundException('Error updating associations');
+            } else {
+                throw error;
+            }
+        }
+    }
 
 }
