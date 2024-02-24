@@ -166,11 +166,16 @@ export class ObjectsService {
                 throw new NotFoundException('Article not found');
             }
 
-            // Delete associations
-            await this.objectCharacteristicsAssociationRepository.remove(article.objectCharacteristicsAssociations);
+            // // Delete associations
+            // await this.objectCharacteristicsAssociationRepository.remove(article.objectCharacteristicsAssociations);
 
-            // // Delete the article from the database
-            await this.articlesRepository.remove(article);
+            const articleToDelete = await this.articlesRepository.findOne(
+                {where: {ID: id}}
+            );
+            if (!articleToDelete) {
+                throw new NotFoundException('Article not found');
+            }
+            await this.articlesRepository.delete(articleToDelete);
     
             return {
                 status: HttpStatus.OK,
