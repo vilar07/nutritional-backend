@@ -113,8 +113,21 @@ export class ObjectsController {
 
     @Post('associate/:objectType/:title')
     @ApiOperation({ summary: 'Associate characteristics with an object' })
+    @ApiBody({
+    schema: {
+        type: 'array',
+        items: {
+        type: 'object',
+        properties: {
+            characteristic: { type: 'string' },
+            options: { type: 'array', items: { type: 'string' } }
+        },
+        required: ['characteristic', 'options']
+        }
+    }
+    })
     async associateObject(
-        @Param() params: AssociateObjectDTO,
+        @Param() params: UpdateAssociationDTO,
         @Body() associations: AssociationItemDTO[]
     ) {
         return await this.objectsService.associateObject(params, associations);
