@@ -1,11 +1,15 @@
 // objects.dto.ts
 import { ApiProperty } from '@nestjs/swagger';
-import { IsOptional, IsInt, IsString, IsNotEmpty } from 'class-validator';
+import { IsOptional, IsNotEmpty } from 'class-validator';
 
     export class GetObjectByIDdto {
         @ApiProperty()
         @IsNotEmpty({ message: 'Object id cannot be empty' })
         id: number;
+
+        @ApiProperty()
+        @IsNotEmpty({ message: 'Object type cannot be empty' })
+        objectType: string;
     }
 
     export class CreateArticleDTO {
@@ -20,6 +24,24 @@ import { IsOptional, IsInt, IsString, IsNotEmpty } from 'class-validator';
         @ApiProperty({ description: 'The description of the article', type: 'string' })
         @IsNotEmpty({ message: 'Description cannot be empty' })
         description: string;
+    }
+
+    export class CreateCalculatorDTO {
+        @ApiProperty({ description: 'The title of the calculator', type: 'string' })
+        @IsNotEmpty({ message: 'Title cannot be empty' })
+        title: string;
+
+        @ApiProperty({ description: 'The subtitle of the calculator', type: 'string' })
+        @IsNotEmpty({ message: 'Subtitle cannot be empty' })
+        subtitle: string;
+
+        @ApiProperty({ description: 'The data of the calculator', type: 'string' })
+        @IsNotEmpty({ message: 'Data cannot be empty' })
+        data: string;
+
+        @ApiProperty({ description: 'The equation of the calculator', type: 'string' })
+        @IsNotEmpty({ message: 'Equation cannot be empty' })
+        equation: string;
     }
 
     export class UpdateArticleDTO {

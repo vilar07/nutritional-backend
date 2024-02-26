@@ -16,10 +16,13 @@ export class Calculators {
   subtitle: string;
 
   @Column({ type: 'varchar' })
-  data: string;
+  description: string;
 
   @Column({ type: 'varchar' })
   equation: string;
+
+  @Column({ type: 'varchar', nullable: true })
+  image: string;
 
   @Column({ type: 'timestamp', default: () => 'CURRENT_TIMESTAMP' })
   created_at: Date;

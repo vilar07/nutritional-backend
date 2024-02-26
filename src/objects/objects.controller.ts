@@ -4,10 +4,10 @@ import { GetObjectByIDdto, CreateArticleDTO, AssociateObjectDTO, AssociateObject
 UpdateAssociationDTO, AssociationItemDTO } from './dtos/objects.dto';
 import { ApiTags } from '@nestjs/swagger';
 import { FileInterceptor } from '@nestjs/platform-express';
-import { UseInterceptors, UploadedFile } from '@nestjs/common';
+import { UseInterceptors, UploadedFile, BadRequestException,Req } from '@nestjs/common';
 import { Request } from 'express';
-import { Req } from '@nestjs/common';
 import { ApiOperation, ApiConsumes, ApiBody } from '@nestjs/swagger';
+
 
 @ApiTags('Objects')
 @Controller('objects')
@@ -15,100 +15,99 @@ export class ObjectsController {
     private readonly logger = new Logger(ObjectsController.name);
     constructor(private readonly objectsService: ObjectsService){}
     
-    @Get('articles')
-    @ApiOperation({ summary: 'Get all articles' })
-    async getArticles() {
-        return await this.objectsService.getArticles();
+    @Get(':objectType')
+    @ApiOperation({ summary: 'Get all Objects' })
+    async getObjects(
+        @Param('objectType') objectType: string,
+    ) {
+        return await this.objectsService.getObjects(objectType);
     }
     
-    @Get('article/:id')
-    @ApiOperation({ summary: 'Get an article by id' })
-    async getArticle(
+    @Get(':objectType/:id')
+    @ApiOperation({ summary: 'Get an object by id' })
+    async getObject(
         @Param() params: GetObjectByIDdto
     ) {
-        return await this.objectsService.getArticle(params);
+        return await this.objectsService.getObject(params);
     }
 
-    @Post('article')
-    @ApiOperation({ summary: 'Create an article' })
+    @Post(':objectType')
+    @ApiOperation({ summary: 'Create an Object' })
     @ApiConsumes('multipart/form-data')
-    @ApiBody({
-        schema: {
-            type: 'object',
-            properties: {
-                title: {
-                    type: 'string',
-                    description: 'The title of the article',
-                },
-                subtitle: {
-                    type: 'string',
-                    description: 'The subtitle of the article',
-                },
-                description: {
-                    type: 'string',
-                    description: 'The description of the article',
-                },
-                image: {
-                    type: 'file',
-                    description: 'The image of the article',
-                },
-            },
-        },
-    })
     @UseInterceptors(FileInterceptor('image')) // Use file interceptor for 'image' field
-    async createArticle(@UploadedFile() image: Express.Multer.File, @Req() req: Request) {
-        const createArticleDTO: CreateArticleDTO = {
-            title: req.body.title, // Assuming title is sent in the form-data
-            subtitle: req.body.subtitle, // Assuming subtitle is sent in the form-data
-            description: req.body.description // Assuming description is also sent in the form-data
-        };
-        return await this.objectsService.createArticle(createArticleDTO, image);
+    async createObject(
+        @Param('objectType') objectType: string,
+        @UploadedFile() image: Express.Multer.File,
+        @Req() req: Request
+    ) {
+        let createObjectDTO: any; // Define a variable to hold the DTO dynamically
+
+        // Construct DTO based on the objectType
+        switch(objectType) {
+            case 'article':
+                createObjectDTO = {
+                    title: req.body.title,
+                    subtitle: req.body.subtitle,
+                    description: req.body.description
+                };
+                break;
+            case 'calculator':
+                createObjectDTO = {
+                    title: req.body.title,
+                    subtitle: req.body.subtitle,
+                    description: req.body.description,
+                    equation: req.body.equation
+                };
+                break;
+            // Add more cases for other object types as needed
+            default:
+                throw new BadRequestException('Invalid object type');
+        }
+
+        return await this.objectsService.createObject(objectType, createObjectDTO, image);
     }
 
-    @Put('article/:id')
-    @ApiOperation({ summary: 'Update an article' })
+    @Put(':objectType/:id')
+    @ApiOperation({ summary: 'Update an Object' })
     @ApiConsumes('multipart/form-data')
-    @ApiBody({
-        schema: {
-            type: 'object',
-            properties: {
-                title: {
-                    type: 'string',
-                    description: 'The title of the article',
-                },
-                subtitle: {
-                    type: 'string',
-                    description: 'The subtitle of the article',
-                },
-                description: {
-                    type: 'string',
-                    description: 'The description of the article',
-                },
-                image: {
-                    type: 'file',
-                    description: 'The image of the article',
-                },
-            },
-        },
-    })
     @UseInterceptors(FileInterceptor('image')) // Use file interceptor for 'image' field
-    async updateArticle(
+    async updateObject(
+        @Param('objectType') objectType: string,
         @Param('id') id: number,
         @UploadedFile() image: Express.Multer.File,
         @Req() req: Request
     ) {
-        const updateArticleDTO: UpdateArticleDTO = {
-            title: req.body.title,
-            subtitle: req.body.subtitle,
-            description: req.body.description
-        };
-        return await this.objectsService.updateArticle(id, updateArticleDTO, image);
+        let updateObjectDTO: any; // Define a variable to hold the DTO dynamically
+
+        // Construct DTO based on the objectType
+        switch(objectType) {
+            case 'article':
+                const updateObjectDTO: UpdateArticleDTO = {
+                    title: req.body.title,
+                    subtitle: req.body.subtitle,
+                    description: req.body.description
+                };
+                break;
+            // case 'form':
+            //     updateObjectDTO = {
+            //         // Define fields for the form DTO
+            //     };
+            //     break;
+            // Add more cases for other object types as needed
+            default:
+                throw new BadRequestException('Invalid object type');
+        }
+
+        return await this.objectsService.updateObject(objectType, id, updateObjectDTO, image);
     }
 
-    @Delete('article/:id')
-    @ApiOperation({ summary: 'Delete an article' })
-    async deleteArticle(@Param('id') id: number) {
-        return await this.objectsService.deleteArticle(id);
+    @Delete(':objectType/:id')
+    @ApiOperation({ summary: 'Delete an Object' })
+    async deleteObject(
+        @Param('objectType') objectType: string,
+        @Param('id') id: number
+    ) {
+        return await this.objectsService.deleteObject(objectType, id);
     }
 
     @Post('associate/:objectType/:title')

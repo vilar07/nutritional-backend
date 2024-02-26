@@ -10,7 +10,8 @@ UpdateAssociationDTO, AssociationItemDTO } from './dtos/objects.dto';
 import * as fs from 'fs-extra';
 import cloudinary from 'src/cloudinary.config';
 import { HttpException } from '@nestjs/common';
-import { NotFoundException } from '@nestjs/common';
+import { NotFoundException, BadRequestException } from '@nestjs/common';
+import { Calculators } from './entities/Calculators';
 
 
 
@@ -20,12 +21,34 @@ export class ObjectsService {
     constructor(
         @InjectRepository(Articles)
         private readonly articlesRepository: Repository<Articles>,
+        @InjectRepository(Calculators)
+        private readonly calculatorsRepository: Repository<Calculators>,
         @InjectRepository(ObjectCharacteristicsAssociation)
         private readonly objectCharacteristicsAssociationRepository: Repository<ObjectCharacteristicsAssociation>,
         @InjectRepository(Characteristics)
         private readonly characteristicRepository: Repository<Characteristics>,
 
     ) {}
+
+    async getObjects(objectType: string) {
+        try {
+            switch(objectType) {
+                case 'articles':
+                    return await this.getArticles();
+                // case 'form':
+                //     return await this.getForms();
+                // // Add more cases for other object types as needed
+                default:
+                    throw new BadRequestException('Invalid object type');
+            }
+        } catch (error) {
+            if (error instanceof NotFoundException) {
+                throw new NotFoundException('Error getting objects');
+            } else {
+                throw error;
+            }
+        }
+    }
 
     async getArticles() {
         if (await this.articlesRepository.count() === 0) {
@@ -38,19 +61,48 @@ export class ObjectsService {
         return this.articlesRepository.find();
     }
 
-    async getArticle(params: GetObjectByIDdto): Promise<any> {
-        const article = await this.articlesRepository.findOne({
-            where: {ID: params.id},
-            relations: ['objectCharacteristicsAssociations', 'objectCharacteristicsAssociations.characteristics'],
-        })
-        
-        if (!article) {
-            return {
-                status: HttpStatus.NOT_FOUND,
-                message: 'Article not found',
-            };
+    async getObject(params: GetObjectByIDdto): Promise<any> {
+        switch (params.objectType) {
+            case 'article':
+                const article = await this.articlesRepository.findOne({
+                    where: {ID: params.id},
+                    relations: ['objectCharacteristicsAssociations', 'objectCharacteristicsAssociations.characteristics'],
+                })
+                
+                if (!article) {
+                    return {
+                        status: HttpStatus.NOT_FOUND,
+                        message: 'Article not found',
+                    };
+                }
+                return article;
+            default:
+                return {
+                    status: HttpStatus.NOT_FOUND,
+                    message: 'Object type not found',
+                };
         }
-        return article;
+        
+    }
+
+    async createObject(objectType: string, objectData: any, image: Express.Multer.File): Promise<any> {
+        try {
+            switch(objectType) {
+                case 'article':
+                    return await this.createArticle(objectData, image);
+                case 'calculator':
+                    return await this.createCalculator(objectData, image);
+                // Add more cases for other object types as needed
+                default:
+                    throw new BadRequestException('Invalid object type');
+            }
+        } catch (error) {
+            if (error instanceof NotFoundException) {
+                throw new NotFoundException('Error creating object');
+            } else {
+                throw error;
+            }
+        }
     }
 
     async createArticle(articleData: CreateArticleDTO, image: Express.Multer.File): Promise<any> {
@@ -94,6 +146,74 @@ export class ObjectsService {
         } catch (error) {
             if (error instanceof NotFoundException) {
                 throw new NotFoundException('Error creating article');
+            } else {
+                throw error;
+            }
+        }
+    }
+
+    async createCalculator(calculatorData: any, image: Express.Multer.File): Promise<any> {
+        try {
+            if(image) {
+                // Save the image buffer to a temporary file
+                const tempFilePath = './file.png'; // Provide the path to a temporary file
+                fs.writeFileSync(tempFilePath, image.buffer);
+        
+                // Upload the temporary file to Cloudinary
+                const result = await cloudinary.uploader.upload(tempFilePath, {
+                    folder: 'calculators', // Optional: specify a folder in Cloudinary
+                });
+        
+                // Create calculator entity with Cloudinary image URL
+                const calculator = this.calculatorsRepository.create({
+                    title: calculatorData.title,
+                    subtitle: calculatorData.subtitle,
+                    description: calculatorData.description,
+                    equation: calculatorData.equation,
+                    image: result.secure_url, // Use the Cloudinary image URL
+                });
+        
+                // Save the calculator to the database
+                await this.calculatorsRepository.save(calculator);
+        
+                // Delete the temporary file
+                fs.unlinkSync(tempFilePath);
+            }
+            else {
+                const calculator = this.calculatorsRepository.create({
+                    title: calculatorData.title,
+                    subtitle: calculatorData.subtitle,
+                    description: calculatorData.description,
+                    equation: calculatorData.equation,
+                });
+        
+                // Save the calculator to the database
+                await this.calculatorsRepository.save(calculator);
+            }
+        }
+        catch (error) {
+            if (error instanceof NotFoundException) {
+                throw new NotFoundException('Error creating calculator');
+            } else {
+                throw error;
+            }
+        }
+    }
+
+
+    async updateObject(objectType: string, id: number, objectData: any, image: Express.Multer.File): Promise<any> {
+        try {
+            switch(objectType) {
+                case 'article':
+                    return await this.updateArticle(id, objectData, image);
+                case 'calculator':
+                    return await this.updateCalculator(id, objectData, image);
+                default:
+                    throw new BadRequestException('Invalid object type');
+            }
+        } catch (error) {
+            if (error instanceof NotFoundException) {
+                throw new NotFoundException('Error updating object');
             } else {
                 throw error;
             }
@@ -154,6 +274,82 @@ export class ObjectsService {
         }
     }
 
+    async updateCalculator(id: number, calculatorData: any, image: Express.Multer.File): Promise<any> {
+        try {
+            const calculator = await this.calculatorsRepository.findOne(
+                {where: {ID: id}}
+            );
+            if (!calculator) {
+                throw new NotFoundException('Calculator not found');
+            }
+    
+            // If image is provided, update the image
+            if (image) {
+                // Save the new image buffer to a temporary file
+                const tempFilePath = './file.png'; // Provide the path to a temporary file
+                fs.writeFileSync(tempFilePath, image.buffer);
+    
+                // Upload the temporary file to Cloudinary
+                const result = await cloudinary.uploader.upload(tempFilePath, {
+                    folder: 'calculators', // Optional: specify a folder in Cloudinary
+                });
+    
+                // Update calculator with new Cloudinary image URL
+                calculator.image = result.secure_url;
+    
+                // Delete the temporary file
+                fs.unlinkSync(tempFilePath);
+            }
+    
+            // Update other fields if provided
+            if (calculatorData.title) {
+                calculator.title = calculatorData.title;
+            }
+            if (calculatorData.subtitle) {
+                calculator.subtitle = calculatorData.subtitle;
+            }
+            if (calculatorData.description) {
+                calculator.description = calculatorData.description;
+            }
+            if (calculatorData.equation) {
+                calculator.equation = calculatorData.equation;
+            }
+    
+            // Save the updated calculator to the database
+            await this.calculatorsRepository.save(calculator);
+    
+            return {
+                status: HttpStatus.OK,
+                message: 'Calculator updated',
+            };
+        } catch (error) {
+            if (error instanceof NotFoundException) {
+                throw new NotFoundException('Error updating calculator');
+            } else {
+                throw error;
+            }
+        }
+    }
+
+    async deleteObject(objectType: string, id: number): Promise<any> {
+        try {
+            switch(objectType) {
+                case 'article':
+                    return await this.deleteArticle(id);
+                case 'calculator':
+                    return await this.deleteCalculator(id);
+                default:
+                    throw new BadRequestException('Invalid object type');
+            }
+        } catch (error) {
+            if (error instanceof NotFoundException) {
+                throw new NotFoundException('Error deleting object');
+            } else {
+                throw error;
+            }
+        }
+    }
+
     async deleteArticle(id: number): Promise<any> {
         try {
             const article = await this.articlesRepository.findOne(
@@ -166,8 +362,8 @@ export class ObjectsService {
                 throw new NotFoundException('Article not found');
             }
 
-            // // Delete associations
-            // await this.objectCharacteristicsAssociationRepository.remove(article.objectCharacteristicsAssociations);
+            // Delete associations
+            await this.objectCharacteristicsAssociationRepository.remove(article.objectCharacteristicsAssociations);
 
             const articleToDelete = await this.articlesRepository.findOne(
                 {where: {ID: id}}
@@ -184,6 +380,39 @@ export class ObjectsService {
         } catch (error) {
             if (error instanceof NotFoundException) {
                 throw new NotFoundException('Error deleting article');
+            } else {
+                throw error;
+            }
+        }
+    }
+
+    async deleteCalculator(id: number): Promise<any> {
+        try {
+            const calculator = await this.calculatorsRepository.findOne(
+                {where: {ID: id}}
+            );
+            
+            if (!calculator) {
+                throw new NotFoundException('Calculator not found');
+            }
+
+            await this.objectCharacteristicsAssociationRepository.remove(calculator.objectCharacteristicsAssociations);
+
+            const calculatorToDelete = await this.calculatorsRepository.findOne(
+                {where: {ID: id}}
+            );
+            if (!calculatorToDelete) {
+                throw new NotFoundException('Calculator not found');
+            }
+            await this.calculatorsRepository.delete(calculatorToDelete);
+    
+            return {
+                status: HttpStatus.OK,
+                message: 'Calculator deleted',
+            };
+        } catch (error) {
+            if (error instanceof NotFoundException) {
+                throw new NotFoundException('Error deleting calculator');
             } else {
                 throw error;
             }
@@ -247,7 +476,7 @@ export class ObjectsService {
 
     async updateAssociations(params: UpdateAssociationDTO, associations: AssociationItemDTO[]): Promise<any> {
         try {
-            switch (params.objectType) {
+            switch (params.objectType){
                 case 'article':
                     const article = await this.articlesRepository.findOne({ where: { title: params.title } });
                     if (!article) {
