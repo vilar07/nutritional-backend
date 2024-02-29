@@ -18,6 +18,9 @@ export class Calculators {
   @Column({ type: 'varchar' })
   description: string;
 
+  @Column({ type: 'varchar' }) 
+  variable_to_calculate: string;
+
   @Column({ type: 'varchar' })
   equation: string;
 
