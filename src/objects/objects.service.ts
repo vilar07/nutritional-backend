@@ -169,6 +169,7 @@ export class ObjectsService {
                     title: calculatorData.title,
                     subtitle: calculatorData.subtitle,
                     description: calculatorData.description,
+                    variable_to_calculate: calculatorData.variable_to_calculate,
                     equation: calculatorData.equation,
                     image: result.secure_url, // Use the Cloudinary image URL
                 });
@@ -313,6 +314,9 @@ export class ObjectsService {
             }
             if (calculatorData.equation) {
                 calculator.equation = calculatorData.equation;
+            }
+            if (calculatorData.variable_to_calculate) {
+                calculator.variable_to_calculate = calculatorData.variable_to_calculate;
             }
     
             // Save the updated calculator to the database

@@ -56,6 +56,7 @@ export class ObjectsController {
                     title: req.body.title,
                     subtitle: req.body.subtitle,
                     description: req.body.description,
+                    variable_to_calculate: req.body.variable_to_calculate,
                     equation: req.body.equation
                 };
                 break;
