@@ -35,9 +35,8 @@ export class ObjectsService {
             switch(objectType) {
                 case 'articles':
                     return await this.getArticles();
-                // case 'form':
-                //     return await this.getForms();
-                // // Add more cases for other object types as needed
+                case 'calculators':
+                    return await this.getCalculators();
                 default:
                     throw new BadRequestException('Invalid object type');
             }
@@ -61,6 +60,17 @@ export class ObjectsService {
         return this.articlesRepository.find();
     }
 
+    async getCalculators() {
+        if (await this.calculatorsRepository.count() === 0) {
+            return {
+                status: HttpStatus.NOT_FOUND,
+                message: 'No calculators found',
+            };
+        }
+
+        return this.calculatorsRepository.find();
+    }
+
     async getObject(params: GetObjectByIDdto): Promise<any> {
         switch (params.objectType) {
             case 'article':
@@ -76,6 +86,18 @@ export class ObjectsService {
                     };
                 }
                 return article;
+            case 'calculator':
+                const calculator = await this.calculatorsRepository.findOne({
+                    where: {ID: params.id},
+                    relations: ['objectCharacteristicsAssociations', 'objectCharacteristicsAssociations.characteristics'],
+                })
+                if (!calculator) {
+                    return {
+                        status: HttpStatus.NOT_FOUND,
+                        message: 'Calculator not found',
+                    };
+                }
+                return calculator;
             default:
                 return {
                     status: HttpStatus.NOT_FOUND,
@@ -203,7 +225,7 @@ export class ObjectsService {
 
 
     async updateObject(objectType: string, id: number, objectData: any, image: Express.Multer.File): Promise<any> {
-        try {
+        try {  
             switch(objectType) {
                 case 'article':
                     return await this.updateArticle(id, objectData, image);
@@ -466,6 +488,46 @@ export class ObjectsService {
                         status: HttpStatus.CREATED,
                         message: 'All associations created',
                     };
+                case "calculator":
+                    const calculator = await this.calculatorsRepository.findOne({ where: { title: params.title } });
+                    if (!calculator) {
+                        throw new HttpException('Calculator with that title does not exist.', HttpStatus.NOT_FOUND);
+                    }
+                   
+                    for (const association of associations) {
+                        const characteristic = await this.characteristicRepository.findOne({ where: { name: association.characteristic } });
+                        if (!characteristic) {
+                            throw new HttpException(`Characteristic "${association.characteristic}" does not exist.`, HttpStatus.NOT_FOUND);
+                        }
+                        
+                        for (const optionName of association.options) {
+                            const existingAssociation = await this.objectCharacteristicsAssociationRepository.findOne({
+                                where: {
+                                    characteristics: characteristic,
+                                    calculators: calculator,
+                                    option_selected: optionName,
+                                },
+                                relations: ['characteristics', 'calculators'],
+                            });
+    
+                            if (existingAssociation) {
+                                continue; // Skip if association already exists
+                            }
+                            
+                            const objectCharacteristicsAssociation = this.objectCharacteristicsAssociationRepository.create({
+                                option_selected: optionName,
+                                characteristics: [characteristic],
+                                calculators: [calculator],
+                            });
+                            await this.objectCharacteristicsAssociationRepository.save(objectCharacteristicsAssociation);
+                        }
+                    }
+    
+                    // Return a success message if all associations are created successfully
+                    return {
+                        status: HttpStatus.CREATED,
+                        message: 'All associations created',
+                    };
                 default:
                     throw new HttpException('Object type not found', HttpStatus.NOT_FOUND);
             }
@@ -480,6 +542,7 @@ export class ObjectsService {
 
     async updateAssociations(params: UpdateAssociationDTO, associations: AssociationItemDTO[]): Promise<any> {
         try {
+            let associationsToDelete = [];
             switch (params.objectType){
                 case 'article':
                     const article = await this.articlesRepository.findOne({ where: { title: params.title } });
@@ -488,7 +551,7 @@ export class ObjectsService {
                     }
     
                     // Find the existing associations for the specified article
-                    const associationsToDelete = await this.objectCharacteristicsAssociationRepository.find({
+                    associationsToDelete = await this.objectCharacteristicsAssociationRepository.find({
                         where: { articles: article },
                     });
 
@@ -508,6 +571,42 @@ export class ObjectsService {
                                 option_selected: optionName,
                                 characteristics: [characteristic],
                                 articles: [article],
+                            });
+                            await this.objectCharacteristicsAssociationRepository.save(objectCharacteristicsAssociation);
+                        }
+                    }
+    
+                    return {
+                        status: HttpStatus.OK,
+                        message: 'Associations updated successfully',
+                    };
+                case "calculator":
+                    const calculator = await this.calculatorsRepository.findOne({ where: { title: params.title } });
+                    if (!calculator) {
+                        throw new HttpException('Calculator with that title does not exist.', HttpStatus.NOT_FOUND);
+                    }
+    
+                    // Find the existing associations for the specified calculator
+                    associationsToDelete = await this.objectCharacteristicsAssociationRepository.find({
+                        where: { calculators: calculator },
+                    });
+
+                    // Delete the existing associations
+                    await this.objectCharacteristicsAssociationRepository.remove(associationsToDelete);
+                    console.log("existing associations deleted successfully")
+    
+                    // Create new associations based on the provided associations
+                    for (const association of associations) {
+                        const characteristic = await this.characteristicRepository.findOne({ where: { name: association.characteristic } });
+                        if (!characteristic) {
+                            throw new HttpException(`Characteristic "${association.characteristic}" does not exist.`, HttpStatus.NOT_FOUND);
+                        }
+    
+                        for (const optionName of association.options) {
+                            const objectCharacteristicsAssociation = this.objectCharacteristicsAssociationRepository.create({
+                                option_selected: optionName,
+                                characteristics: [characteristic],
+                                calculators: [calculator],
                             });
                             await this.objectCharacteristicsAssociationRepository.save(objectCharacteristicsAssociation);
                         }

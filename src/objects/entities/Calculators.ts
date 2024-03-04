@@ -15,7 +15,7 @@ export class Calculators {
   @Column({ type: 'varchar' })
   subtitle: string;
 
-  @Column({ type: 'varchar' })
+  @Column({ type: 'text' })
   description: string;
 
   @Column({ type: 'varchar' }) 

@@ -83,18 +83,21 @@ export class ObjectsController {
         // Construct DTO based on the objectType
         switch(objectType) {
             case 'article':
-                const updateObjectDTO: UpdateArticleDTO = {
+                updateObjectDTO = {
                     title: req.body.title,
                     subtitle: req.body.subtitle,
                     description: req.body.description
                 };
                 break;
-            // case 'form':
-            //     updateObjectDTO = {
-            //         // Define fields for the form DTO
-            //     };
-            //     break;
-            // Add more cases for other object types as needed
+            case 'calculator':
+                updateObjectDTO = {
+                    title: req.body.title,
+                    subtitle: req.body.subtitle,
+                    description: req.body.description,
+                    variable_to_calculate: req.body.variable_to_calculate,
+                    equation: req.body.equation
+                };
+                break;
             default:
                 throw new BadRequestException('Invalid object type');
         }
