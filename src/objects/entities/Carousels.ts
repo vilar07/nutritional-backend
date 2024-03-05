@@ -10,11 +10,17 @@ export class Carousels{
     @PrimaryGeneratedColumn({type: 'bigint'})
     ID: number;
 
-    @Column({ type: 'blob' })
-    image_video: Buffer;
+    @Column({ type: 'varchar' })
+    title: string;
 
     @Column({ type: 'varchar' })
-    link: string;
+    subtitle: string;
+
+    @Column({ type: 'text' })
+    description: string;
+
+    @Column({ type: 'text'})
+    images: string;
 
     @Column({ type: 'timestamp', default: () => 'CURRENT_TIMESTAMP' })
     created_at: Date;

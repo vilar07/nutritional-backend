@@ -12,6 +12,7 @@ import cloudinary from 'src/cloudinary.config';
 import { HttpException } from '@nestjs/common';
 import { NotFoundException, BadRequestException } from '@nestjs/common';
 import { Calculators } from './entities/Calculators';
+import { Carousels } from './entities/Carousels';
 
 
 
@@ -27,6 +28,8 @@ export class ObjectsService {
         private readonly objectCharacteristicsAssociationRepository: Repository<ObjectCharacteristicsAssociation>,
         @InjectRepository(Characteristics)
         private readonly characteristicRepository: Repository<Characteristics>,
+        @InjectRepository(Carousels)
+        private readonly carouselsRepository: Repository<Carousels>,
 
     ) {}
 
@@ -37,6 +40,8 @@ export class ObjectsService {
                     return await this.getArticles();
                 case 'calculators':
                     return await this.getCalculators();
+                case 'carousels':
+                    return await this.getCarousels();
                 default:
                     throw new BadRequestException('Invalid object type');
             }
@@ -69,6 +74,17 @@ export class ObjectsService {
         }
 
         return this.calculatorsRepository.find();
+    }
+
+    async getCarousels() {
+        if (await this.carouselsRepository.count() === 0) {
+            return {
+                status: HttpStatus.NOT_FOUND,
+                message: 'No carousels found',
+            };
+        }
+
+        return this.carouselsRepository.find();
     }
 
     async getObject(params: GetObjectByIDdto): Promise<any> {
@@ -107,13 +123,15 @@ export class ObjectsService {
         
     }
 
-    async createObject(objectType: string, objectData: any, image: Express.Multer.File): Promise<any> {
+    async createObject(objectType: string, objectData: any, images: Array<Express.Multer.File>): Promise<any> {
         try {
             switch(objectType) {
                 case 'article':
-                    return await this.createArticle(objectData, image);
+                    return await this.createArticle(objectData, images[0]); // Assuming only one image is allowed for article
                 case 'calculator':
-                    return await this.createCalculator(objectData, image);
+                    return await this.createCalculator(objectData, images[0]); // Assuming only one image is allowed for calculator
+                case 'carousel':
+                    return await this.createCarousel(objectData, images); // Handle creating carousel with multiple images
                 // Add more cases for other object types as needed
                 default:
                     throw new BadRequestException('Invalid object type');
@@ -223,6 +241,53 @@ export class ObjectsService {
         }
     }
 
+    async createCarousel(carouselData: any, images: Array<Express.Multer.File>): Promise<any> {
+        try {
+            // Save the image buffer to a temporary file
+            const tempFilePaths = [];
+            for (let i = 0; i < images.length; i++) {
+                const tempFilePath = `./file${i}.png`; // Provide the path to a temporary file
+                fs.writeFileSync(tempFilePath, images[i].buffer);
+                tempFilePaths.push(tempFilePath);
+            }
+    
+            // Upload the temporary files to Cloudinary
+            const results = [];
+            for (let i = 0; i < images.length; i++) {
+                const result = await cloudinary.uploader.upload(tempFilePaths[i], {
+                    folder: 'carousels', // Optional: specify a folder in Cloudinary
+                });
+                results.push(result.secure_url);
+            }
+    
+            // Create carousel entity with Cloudinary image URLs
+            const carousel = this.carouselsRepository.create({
+                title: carouselData.title,
+                subtitle: carouselData.subtitle,
+                description: carouselData.description,
+                images: JSON.stringify(results), // Serialize the array of image URLs to a JSON string
+            });
+    
+            // Save the carousel to the database
+            await this.carouselsRepository.save(carousel);
+    
+            // Delete the temporary files
+            for (let i = 0; i < images.length; i++) {
+                fs.unlinkSync(tempFilePaths[i]);
+            }
+    
+            return {
+                status: HttpStatus.CREATED,
+                message: 'Carousel created',
+            };
+        } catch (error) {
+            if (error instanceof NotFoundException) {
+                throw new NotFoundException('Error creating carousel');
+            } else {
+                throw error;
+            }
+        }
+    }
 
     async updateObject(objectType: string, id: number, objectData: any, image: Express.Multer.File): Promise<any> {
         try {  

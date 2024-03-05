@@ -32,7 +32,7 @@ import { ObjectCharacteristicsAssociation } from './objects/entities/ObjectChara
       entities: [User, Characteristics, ProfileCharacteristicsType, CharacteristicsType, CharacteristicsPossibleOptions,
       ActivateWhen, ActivateUntil, Articles, Calculators, Carousels, Forms, MealCards, ObjectCharacteristicsAssociation
       ],
-      synchronize: false,
+      synchronize: true,
       logging: true,
     }),
     UsersModule,

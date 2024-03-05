@@ -3,8 +3,8 @@ import { ObjectsService } from './objects.service';
 import { GetObjectByIDdto, CreateArticleDTO, AssociateObjectDTO, AssociateObjectOptionDTO, UpdateArticleDTO,
 UpdateAssociationDTO, AssociationItemDTO } from './dtos/objects.dto';
 import { ApiTags } from '@nestjs/swagger';
-import { FileInterceptor } from '@nestjs/platform-express';
-import { UseInterceptors, UploadedFile, BadRequestException,Req } from '@nestjs/common';
+import { FileInterceptor, FilesInterceptor } from '@nestjs/platform-express';
+import { UseInterceptors, UploadedFile, BadRequestException,Req, UploadedFiles } from '@nestjs/common';
 import { Request } from 'express';
 import { ApiOperation, ApiConsumes, ApiBody } from '@nestjs/swagger';
 
@@ -34,10 +34,10 @@ export class ObjectsController {
     @Post(':objectType')
     @ApiOperation({ summary: 'Create an Object' })
     @ApiConsumes('multipart/form-data')
-    @UseInterceptors(FileInterceptor('image')) // Use file interceptor for 'image' field
+    @UseInterceptors(FilesInterceptor('images', 5)) // Use files interceptor for 'images' field with a limit of 5 files
     async createObject(
         @Param('objectType') objectType: string,
-        @UploadedFile() image: Express.Multer.File,
+        @UploadedFiles() images: Array<Express.Multer.File>,
         @Req() req: Request
     ) {
         let createObjectDTO: any; // Define a variable to hold the DTO dynamically
@@ -60,12 +60,19 @@ export class ObjectsController {
                     equation: req.body.equation
                 };
                 break;
+            case 'carousel':
+                createObjectDTO = {
+                    title: req.body.title,
+                    subtitle: req.body.subtitle,
+                    description: req.body.description
+                };
+                break;
             // Add more cases for other object types as needed
             default:
                 throw new BadRequestException('Invalid object type');
         }
 
-        return await this.objectsService.createObject(objectType, createObjectDTO, image);
+        return await this.objectsService.createObject(objectType, createObjectDTO, images);
     }
 
     @Put(':objectType/:id')
