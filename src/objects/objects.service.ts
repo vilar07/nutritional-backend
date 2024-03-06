@@ -194,6 +194,13 @@ export class ObjectsService {
 
     async createCalculator(calculatorData: any, image: Express.Multer.File): Promise<any> {
         try {
+            const existingCalculator = await this.calculatorsRepository.findOne({
+                where: {title: calculatorData.title},
+            });
+            if (existingCalculator) {
+                const errorMessage = 'Calculator with that title already exists.';
+                throw new HttpException(errorMessage, HttpStatus.CONFLICT);
+            }
             if(image) {
                 // Save the image buffer to a temporary file
                 const tempFilePath = './file.png'; // Provide the path to a temporary file
@@ -243,6 +250,13 @@ export class ObjectsService {
 
     async createCarousel(carouselData: any, images: Array<Express.Multer.File>): Promise<any> {
         try {
+            const existingCarousel = await this.carouselsRepository.findOne({
+                where: {title: carouselData.title},
+            });
+            if (existingCarousel) {
+                const errorMessage = 'Carousel with that title already exists.';
+                throw new HttpException(errorMessage, HttpStatus.CONFLICT);
+            }
             // Save the image buffer to a temporary file
             const tempFilePaths = [];
             for (let i = 0; i < images.length; i++) {
@@ -289,13 +303,15 @@ export class ObjectsService {
         }
     }
 
-    async updateObject(objectType: string, id: number, objectData: any, image: Express.Multer.File): Promise<any> {
+    async updateObject(objectType: string, id: number, objectData: any, images: Array<Express.Multer.File>): Promise<any> {
         try {  
             switch(objectType) {
                 case 'article':
-                    return await this.updateArticle(id, objectData, image);
+                    return await this.updateArticle(id, objectData, images[0]);
                 case 'calculator':
-                    return await this.updateCalculator(id, objectData, image);
+                    return await this.updateCalculator(id, objectData, images[0]);
+                case 'carousel':
+                    return await this.updateCarousel(id, objectData, images);
                 default:
                     throw new BadRequestException('Invalid object type');
             }
@@ -422,6 +438,70 @@ export class ObjectsService {
         }
     }
 
+    async updateCarousel(id: number, carouselData: any, images: Array<Express.Multer.File>): Promise<any> {
+        try {
+            const carousel = await this.carouselsRepository.findOne(
+                {where: {ID: id}}
+            );
+            if (!carousel) {
+                throw new NotFoundException('Carousel not found');
+            }
+    
+            // If images are provided, update the images
+            if (images) {
+                // Save the new image buffers to temporary files
+                const tempFilePaths = [];
+                for (let i = 0; i < images.length; i++) {
+                    const tempFilePath = `./file${i}.png`; // Provide the path to a temporary file
+                    fs.writeFileSync(tempFilePath, images[i].buffer);
+                    tempFilePaths.push(tempFilePath);
+                }
+    
+                // Upload the temporary files to Cloudinary
+                const results = [];
+                for (let i = 0; i < images.length; i++) {
+                    const result = await cloudinary.uploader.upload(tempFilePaths[i], {
+                        folder: 'carousels', // Optional: specify a folder in Cloudinary
+                    });
+                    results.push(result.secure_url);
+                }
+    
+                // Update carousel with new Cloudinary image URLs
+                carousel.images = JSON.stringify(results); // Serialize the array of image URLs to a JSON string
+    
+                // Delete the temporary files
+                for (let i = 0; i < images.length; i++) {
+                    fs.unlinkSync(tempFilePaths[i]);
+                }
+            }
+    
+            // Update other fields if provided
+            if (carouselData.title) {
+                carousel.title = carouselData.title;
+            }
+            if (carouselData.subtitle) {
+                carousel.subtitle = carouselData.subtitle;
+            }
+            if (carouselData.description) {
+                carousel.description = carouselData.description;
+            }
+    
+            // Save the updated carousel to the database
+            await this.carouselsRepository.save(carousel);
+    
+            return {
+                status: HttpStatus.OK,
+                message: 'Carousel updated',
+            };
+        } catch (error) {
+            if (error instanceof NotFoundException) {
+                throw new NotFoundException('Error updating carousel');
+            } else {
+                throw error;
+            }
+        }
+    }
+
     async deleteObject(objectType: string, id: number): Promise<any> {
         try {
             switch(objectType) {
@@ -429,6 +509,8 @@ export class ObjectsService {
                     return await this.deleteArticle(id);
                 case 'calculator':
                     return await this.deleteCalculator(id);
+                case 'carousel':
+                    return await this.deleteCarousel(id);
                 default:
                     throw new BadRequestException('Invalid object type');
             }
@@ -504,6 +586,29 @@ export class ObjectsService {
         } catch (error) {
             if (error instanceof NotFoundException) {
                 throw new NotFoundException('Error deleting calculator');
+            } else {
+                throw error;
+            }
+        }
+    }
+
+    async deleteCarousel(id: number): Promise<any> {
+        try {
+            const carousel = await this.carouselsRepository.findOne(
+                {where: {ID: id}}
+            );
+            if (!carousel) {
+                throw new NotFoundException('Carousel not found');
+            }
+            await this.carouselsRepository.delete(carousel);
+    
+            return {
+                status: HttpStatus.OK,
+                message: 'Carousel deleted',
+            };
+        } catch (error) {
+            if (error instanceof NotFoundException) {
+                throw new NotFoundException('Error deleting carousel');
             } else {
                 throw error;
             }
@@ -587,7 +692,41 @@ export class ObjectsService {
                             await this.objectCharacteristicsAssociationRepository.save(objectCharacteristicsAssociation);
                         }
                     }
+
+                case "carousel":
+                    const carousel = await this.carouselsRepository.findOne({ where: { title: params.title } });
+                    if (!carousel) {
+                        throw new HttpException('Carousel with that title does not exist.', HttpStatus.NOT_FOUND);
+                    }
+
+                    for (const association of associations) {
+                        const characteristic = await this.characteristicRepository.findOne({ where: { name: association.characteristic } });
+                        if (!characteristic) {
+                            throw new HttpException(`Characteristic "${association.characteristic}" does not exist.`, HttpStatus.NOT_FOUND);
+                        }
+                        
+                        for (const optionName of association.options) {
+                            const existingAssociation = await this.objectCharacteristicsAssociationRepository.findOne({
+                                where: {
+                                    characteristics: characteristic,
+                                    carousels: carousel,
+                                    option_selected: optionName,
+                                },
+                                relations: ['characteristics', 'carousels'],
+                            });
     
+                            if (existingAssociation) {
+                                continue; // Skip if association already exists
+                            }
+                            
+                            const objectCharacteristicsAssociation = this.objectCharacteristicsAssociationRepository.create({
+                                option_selected: optionName,
+                                characteristics: [characteristic],
+                                carousels: [carousel],
+                            });
+                            await this.objectCharacteristicsAssociationRepository.save(objectCharacteristicsAssociation);
+                        }
+                    }
                     // Return a success message if all associations are created successfully
                     return {
                         status: HttpStatus.CREATED,
@@ -672,6 +811,35 @@ export class ObjectsService {
                                 option_selected: optionName,
                                 characteristics: [characteristic],
                                 calculators: [calculator],
+                            });
+                            await this.objectCharacteristicsAssociationRepository.save(objectCharacteristicsAssociation);
+                        }
+                    }
+                
+                case "carousel":
+                    const carousel = await this.carouselsRepository.findOne({ where: { title: params.title } });
+                    if (!carousel) {
+                        throw new HttpException('Carousel with that title does not exist.', HttpStatus.NOT_FOUND);
+                    }
+
+                    associationsToDelete = await this.objectCharacteristicsAssociationRepository.find({
+                        where: { carousels: carousel },
+                    });
+
+                    await this.objectCharacteristicsAssociationRepository.remove(associationsToDelete);
+                    console.log("existing associations deleted successfully")
+
+                    for (const association of associations) {
+                        const characteristic = await this.characteristicRepository.findOne({ where: { name: association.characteristic } });
+                        if (!characteristic) {
+                            throw new HttpException(`Characteristic "${association.characteristic}" does not exist.`, HttpStatus.NOT_FOUND);
+                        }
+    
+                        for (const optionName of association.options) {
+                            const objectCharacteristicsAssociation = this.objectCharacteristicsAssociationRepository.create({
+                                option_selected: optionName,
+                                characteristics: [characteristic],
+                                carousels: [carousel],
                             });
                             await this.objectCharacteristicsAssociationRepository.save(objectCharacteristicsAssociation);
                         }
