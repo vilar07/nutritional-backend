@@ -114,6 +114,18 @@ export class ObjectsService {
                     };
                 }
                 return calculator;
+            case 'carousel':
+                const carousel = await this.carouselsRepository.findOne({
+                    where: {ID: params.id},
+                    relations: ['objectCharacteristicsAssociations', 'objectCharacteristicsAssociations.characteristics'],
+                })
+                if (!carousel) {
+                    return {
+                        status: HttpStatus.NOT_FOUND,
+                        message: 'Carousel not found',
+                    };
+                }
+                return carousel;
             default:
                 return {
                     status: HttpStatus.NOT_FOUND,
