@@ -1,4 +1,4 @@
-import { Controller, Get, Logger, Post, Param, Body, Put, Delete } from '@nestjs/common';
+import { Controller, Get, Logger, Post, Param, Body, Put, Delete, Query } from '@nestjs/common';
 import { ObjectsService } from './objects.service';
 import { GetObjectByIDdto, CreateArticleDTO, AssociateObjectDTO, AssociateObjectOptionDTO, UpdateArticleDTO,
 UpdateAssociationDTO, AssociationItemDTO } from './dtos/objects.dto';
@@ -19,8 +19,10 @@ export class ObjectsController {
     @ApiOperation({ summary: 'Get all Objects' })
     async getObjects(
         @Param('objectType') objectType: string,
+        @Query('characteristic') characteristic?: string,
+        @Query('option_selected') optionSelected?: string,
     ) {
-        return await this.objectsService.getObjects(objectType);
+        return await this.objectsService.getObjects(objectType, characteristic, optionSelected);
     }
     
     @Get(':objectType/:id')

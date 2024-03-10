@@ -33,14 +33,23 @@ export class ObjectsService {
 
     ) {}
 
-    async getObjects(objectType: string) {
+    async getObjects(objectType: string, characteristic?: string, optionSelected?: string) {
         try {
             switch(objectType) {
                 case 'articles':
+                    if (characteristic && optionSelected) {
+                        return await this.getArticlesByCharacteristic(characteristic, optionSelected);
+                    }
                     return await this.getArticles();
                 case 'calculators':
+                    if (characteristic && optionSelected) {
+                        return await this.getCalculatorsByCharacteristic(characteristic, optionSelected);
+                    }
                     return await this.getCalculators();
                 case 'carousels':
+                    if (characteristic && optionSelected) {
+                        return await this.getCarouselsByCharacteristic(characteristic, optionSelected);
+                    }
                     return await this.getCarousels();
                 default:
                     throw new BadRequestException('Invalid object type');
@@ -65,6 +74,33 @@ export class ObjectsService {
         return this.articlesRepository.find();
     }
 
+    async getArticlesByCharacteristic(characteristic: string, optionSelected: string) {
+        const characteristicEntity = await this.characteristicRepository.findOne({ where: { name: characteristic } });
+        if (!characteristicEntity) {
+            throw new HttpException(`Characteristic "${characteristic}" does not exist.`, HttpStatus.NOT_FOUND);
+        }
+
+        const associations = await this.objectCharacteristicsAssociationRepository.find({
+            where: {
+                characteristics: characteristicEntity,
+                option_selected: optionSelected,
+            },
+            relations: ['articles'],
+        });
+
+        if (associations.length === 0) {
+            return {
+                status: HttpStatus.NOT_FOUND,
+                message: 'No articles found',
+            };
+        }
+
+        const articleIDs = associations.map(association => association.articles[0].ID);
+        return this.articlesRepository.find({
+            where: { ID: In(articleIDs) },
+        });
+    }
+
     async getCalculators() {
         if (await this.calculatorsRepository.count() === 0) {
             return {
@@ -76,6 +112,33 @@ export class ObjectsService {
         return this.calculatorsRepository.find();
     }
 
+    async getCalculatorsByCharacteristic(characteristic: string, optionSelected: string) {
+        const characteristicEntity = await this.characteristicRepository.findOne({ where: { name: characteristic } });
+        if (!characteristicEntity) {
+            throw new HttpException(`Characteristic "${characteristic}" does not exist.`, HttpStatus.NOT_FOUND);
+        }
+
+        const associations = await this.objectCharacteristicsAssociationRepository.find({
+            where: {
+                characteristics: characteristicEntity,
+                option_selected: optionSelected,
+            },
+            relations: ['calculators'],
+        });
+
+        if (associations.length === 0) {
+            return {
+                status: HttpStatus.NOT_FOUND,
+                message: 'No calculators found',
+            };
+        }
+
+        const calculatorIDs = associations.map(association => association.calculators[0].ID);
+        return this.calculatorsRepository.find({
+            where: { ID: In(calculatorIDs) },
+        });
+    }
+
     async getCarousels() {
         if (await this.carouselsRepository.count() === 0) {
             return {
@@ -85,6 +148,33 @@ export class ObjectsService {
         }
 
         return this.carouselsRepository.find();
+    }
+
+    async getCarouselsByCharacteristic(characteristic: string, optionSelected: string) {
+        const characteristicEntity = await this.characteristicRepository.findOne({ where: { name: characteristic } });
+        if (!characteristicEntity) {
+            throw new HttpException(`Characteristic "${characteristic}" does not exist.`, HttpStatus.NOT_FOUND);
+        }
+
+        const associations = await this.objectCharacteristicsAssociationRepository.find({
+            where: {
+                characteristics: characteristicEntity,
+                option_selected: optionSelected,
+            },
+            relations: ['carousels'],
+        });
+
+        if (associations.length === 0) {
+            return {
+                status: HttpStatus.NOT_FOUND,
+                message: 'No carousels found',
+            };
+        }
+
+        const carouselIDs = associations.map(association => association.carousels[0].ID);
+        return this.carouselsRepository.find({
+            where: { ID: In(carouselIDs) },
+        });
     }
 
     async getObject(params: GetObjectByIDdto): Promise<any> {
