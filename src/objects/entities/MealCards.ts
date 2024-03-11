@@ -18,9 +18,6 @@ export class MealCards {
   @Column({ type: 'varchar' })
   link: string;
 
-  @Column({ type: 'int' })
-  number_of_meals: number;
-
   @Column({ type: 'varchar' })
   type_of_recipe: string;
 

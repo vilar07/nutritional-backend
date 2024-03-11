@@ -14,6 +14,15 @@ import { ApiOperation, ApiConsumes, ApiBody } from '@nestjs/swagger';
 export class ObjectsController {
     private readonly logger = new Logger(ObjectsController.name);
     constructor(private readonly objectsService: ObjectsService){}
+
+    //Get all characteristics and its selected options depending on the object type
+    @Get('characteristics/:objectType')
+    @ApiOperation({ summary: 'Get all characteristics and its selected options depending on the object type' })
+    async getCharacteristics(
+        @Param('objectType') objectType: string
+    ) {
+        return await this.objectsService.getCharacteristics(objectType);
+    }
     
     @Get(':objectType')
     @ApiOperation({ summary: 'Get all Objects' })
