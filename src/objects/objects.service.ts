@@ -103,15 +103,24 @@ export class ObjectsService {
                 });
             }
     
-            // Check if any associations have no articles
-            if (associations.some(association => !association.articles || association.articles.length === 0)) {
+            // Check if all associations have no articles
+            if (associations.every(association => association.articles.length === 0)) {
                 throw new HttpException('No articles found for the given characteristic.', HttpStatus.NOT_FOUND);
             }
-    
-            const articleIDs = associations.map(association => association.articles[0].ID);
-    
+        
+            // Filter associations with non-empty articles arrays and get article IDs
+            const articlesIDs = associations
+            .filter(association => association.articles.length > 0)
+            .map(association => association.articles[0].ID);
+
+            // Check if there are no articles found
+            if (articlesIDs.length === 0) {
+            throw new HttpException('No articles found for the given characteristic.', HttpStatus.NOT_FOUND);
+            }
+
+            // Retrieve articles by IDs
             return this.articlesRepository.find({
-                where: { ID: In(articleIDs) },
+            where: { ID: In(articlesIDs) },
             });
         } catch (error) {
             if (error instanceof HttpException) {
@@ -167,14 +176,24 @@ export class ObjectsService {
                 };
             }
         
-            // Check if any associations have no calcultors
-            if (associations.some(association => !association.calculators || association.calculators.length === 0)) {
+            // Check if all associations have no calculators
+            if (associations.every(association => association.calculators.length === 0)) {
                 throw new HttpException('No calculators found for the given characteristic.', HttpStatus.NOT_FOUND);
             }
+        
+            // Filter associations with non-empty calculators arrays and get calculator IDs
+            const calculatorsIDs = associations
+            .filter(association => association.calculators.length > 0)
+            .map(association => association.calculators[0].ID);
 
-            const calculatorIDs = associations.map(association => association.calculators[0].ID);
+            // Check if there are no calculators found
+            if (calculatorsIDs.length === 0) {
+            throw new HttpException('No calculators found for the given characteristic.', HttpStatus.NOT_FOUND);
+            }
+
+            // Retrieve calculators by IDs
             return this.calculatorsRepository.find({
-                where: { ID: In(calculatorIDs) },
+            where: { ID: In(calculatorsIDs) },
             });
         } catch (error) {
             if (error instanceof HttpException) {
@@ -229,14 +248,26 @@ export class ObjectsService {
                 };
             }
 
-            // Check if any associations have no carousels
-            if (associations.some(association => !association.carousels || association.carousels.length === 0)) {
+            console.log("associations:", associations)
+
+            // Check if all associations have no carousels
+            if (associations.every(association => association.carousels.length === 0)) {
                 throw new HttpException('No carousels found for the given characteristic.', HttpStatus.NOT_FOUND);
             }
         
-            const carouselIDs = associations.map(association => association.carousels[0].ID);
+            // Filter associations with non-empty carousels arrays and get carousel IDs
+            const carouselIDs = associations
+            .filter(association => association.carousels.length > 0)
+            .map(association => association.carousels[0].ID);
+
+            // Check if there are no carousels found
+            if (carouselIDs.length === 0) {
+            throw new HttpException('No carousels found for the given characteristic.', HttpStatus.NOT_FOUND);
+            }
+
+            // Retrieve carousels by IDs
             return this.carouselsRepository.find({
-                where: { ID: In(carouselIDs) },
+            where: { ID: In(carouselIDs) },
             });
         } catch (error) {
             if (error instanceof HttpException) {
@@ -905,6 +936,11 @@ export class ObjectsService {
                             await this.objectCharacteristicsAssociationRepository.save(objectCharacteristicsAssociation);
                         }
                     }
+                    // Return a success message if all associations are created successfully
+                    return {
+                        status: HttpStatus.CREATED,
+                        message: 'All associations created',
+                    };
 
                 case "carousel":
                     const carousel = await this.carouselsRepository.findOne({ where: { title: params.title } });
@@ -997,7 +1033,7 @@ export class ObjectsService {
                         status: HttpStatus.OK,
                         message: 'Associations updated successfully',
                     };
-                case "calculator":
+                case 'calculator':
                     const calculator = await this.calculatorsRepository.findOne({ where: { title: params.title } });
                     if (!calculator) {
                         throw new HttpException('Calculator with that title does not exist.', HttpStatus.NOT_FOUND);
@@ -1028,8 +1064,13 @@ export class ObjectsService {
                             await this.objectCharacteristicsAssociationRepository.save(objectCharacteristicsAssociation);
                         }
                     }
+
+                    return {
+                        status: HttpStatus.OK,
+                        message: 'Associations updated successfully',
+                    };
                 
-                case "carousel":
+                case 'carousel':
                     const carousel = await this.carouselsRepository.findOne({ where: { title: params.title } });
                     if (!carousel) {
                         throw new HttpException('Carousel with that title does not exist.', HttpStatus.NOT_FOUND);
