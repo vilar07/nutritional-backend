@@ -766,13 +766,16 @@ export class ObjectsService {
     async deleteCalculator(id: number): Promise<any> {
         try {
             const calculator = await this.calculatorsRepository.findOne(
-                {where: {ID: id}}
+                {
+                    where: {ID: id},
+                    relations: ['objectCharacteristicsAssociations'],
+                },
             );
-            
             if (!calculator) {
                 throw new NotFoundException('Calculator not found');
             }
 
+            // Delete associations
             await this.objectCharacteristicsAssociationRepository.remove(calculator.objectCharacteristicsAssociations);
 
             const calculatorToDelete = await this.calculatorsRepository.findOne(
@@ -799,12 +802,25 @@ export class ObjectsService {
     async deleteCarousel(id: number): Promise<any> {
         try {
             const carousel = await this.carouselsRepository.findOne(
-                {where: {ID: id}}
+                {
+                    where: {ID: id},
+                    relations: ['objectCharacteristicsAssociations'],
+                },
             );
             if (!carousel) {
+                throw new NotFoundException('carousel not found');
+            }
+
+            // Delete associations
+            await this.objectCharacteristicsAssociationRepository.remove(carousel.objectCharacteristicsAssociations);
+
+            const carouselToDelete = await this.carouselsRepository.findOne(
+                {where: {ID: id}}
+            );
+            if (!carouselToDelete) {
                 throw new NotFoundException('Carousel not found');
             }
-            await this.carouselsRepository.delete(carousel);
+            await this.carouselsRepository.delete(carouselToDelete);
     
             return {
                 status: HttpStatus.OK,
