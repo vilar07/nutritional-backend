@@ -1,4 +1,5 @@
-import { Column, Entity, PrimaryGeneratedColumn } from "typeorm";
+import { Column, Entity, ManyToMany, PrimaryGeneratedColumn } from "typeorm";
+import { UserCharacteristicAssociation } from "./UserCharacteristicAssociation";
 
 @Entity({name: 'users'}) //name of the table
 export class User {
@@ -10,5 +11,11 @@ export class User {
     username: string;
 
     @Column()
-    createdAt: Date;
+    email: string;
+
+    @Column({ type: 'timestamp', default: () => 'CURRENT_TIMESTAMP' })
+    created_at: Date;
+
+    @ManyToMany(() => UserCharacteristicAssociation, userCharacteristicAssociation => userCharacteristicAssociation.user)
+    userCharacteristicAssociation: UserCharacteristicAssociation[];
 }

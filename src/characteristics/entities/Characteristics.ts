@@ -2,12 +2,8 @@ import { Entity, PrimaryGeneratedColumn, Column, ManyToOne, JoinColumn, ManyToMa
 import { CharacteristicsPossibleOptions } from './CharacteristicsPossibleOptions';
 import { ActivateWhen } from '../../objects/entities/ActivateWhen';
 import { ActivateUntil } from '../../objects/entities/ActivateUntil';
-import { Carousels } from '../../objects/entities/Carousels';
-import { MealCards } from '../../objects/entities/MealCards';
-import { Calculators } from '../../objects/entities/Calculators';
-import { Articles } from '../../objects/entities/Articles';
-import { Forms } from '../../objects/entities/Forms';
 import { ObjectCharacteristicsAssociation } from '../../objects/entities/ObjectCharacteristicsAssociation';
+import { UserCharacteristicAssociation } from 'src/users/entities/UserCharacteristicAssociation';
 
 
 @Entity('characteristics')
@@ -30,6 +26,9 @@ export class Characteristics {
 
   @ManyToMany(() => ObjectCharacteristicsAssociation, objectCharacteristicsAssociations => objectCharacteristicsAssociations.characteristics)
   objectCharacteristicsAssociations: ObjectCharacteristicsAssociation[];
+  
+  @ManyToMany(() => UserCharacteristicAssociation, userCharacteristicAssociation => userCharacteristicAssociation.characteristics)
+  userCharacteristicAssociation: UserCharacteristicAssociation[];
 
   @ManyToMany(() => ActivateWhen, activateWhen => activateWhen.characteristics)
   activate_whens: ActivateWhen[];

@@ -1,14 +1,56 @@
-import { Controller, Get, Post } from '@nestjs/common';
+import { Controller, Delete, Get, Post } from '@nestjs/common';
 import { ApiTags } from '@nestjs/swagger';
+import { Logger } from '@nestjs/common';
+import { UsersService } from './users.service';
+import { Body, ValidationPipe, Param } from '@nestjs/common';
+import { AssociateCharacteristicsDto, CreateUserDto } from './dtos/users.dto';
+import { ApiOperation } from '@nestjs/swagger';
 
 @ApiTags('Users')
 @Controller('users')
 export class UsersController {
+    private readonly logger = new Logger(UsersController.name);
+    constructor(private readonly usersService: UsersService){}
 
+    //Get all users
     @Get()
-    getUsers(){}
+    @ApiOperation({ summary: 'Get All Users' })
+    async getUsers() {
+        return await this.usersService.getUsers();
+    }
 
+    //Get a user by email
+    @Get('/:email')
+    @ApiOperation({ summary: 'Get an User by email' })
+    async getUserByEmail(
+        @Param('email') email: string
+    ) {
+        return await this.usersService.getUserByEmail(email);
+    }
+
+    //Create a user
     @Post()
-    createUser(){}
+    @ApiOperation({ summary: 'Create an User' })
+    async createUser(@Body(new ValidationPipe()) createUserDto: CreateUserDto) {
+        return await this.usersService.createUser(createUserDto);
+    }
+    
+    //Delete a user
+    @Delete('/:email')
+    @ApiOperation({ summary: 'Delete an User' })
+    async deleteUser(
+        @Param('email') email: string
+    ) {
+        return await this.usersService.deleteUser(email);
+    }
 
+    //Associate Characteristics to an User
+    @Post('/characteritics/:email')
+    @ApiOperation({ summary: 'Associate Characteristics to an User' })
+    async associateCharacteristics(
+        @Param('email') email: string,
+        @Body() associations: AssociateCharacteristicsDto 
+    ){
+        return await this.usersService.associateCharacteristics(email, associations);
+    }
 }

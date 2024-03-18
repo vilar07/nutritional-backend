@@ -10,6 +10,7 @@ import {CreateCharacteristicsTypeDto,CreateProfileCharacteristicsTypeDto,CreateC
 DeleteCharacteristicsTypeDto, GetOptionsIdDto, CharacteristicsPossibleOptionsDto, CharacteristicsTypeDto,
 UpdateCharacteristicsTypeDto,
 UpdateCharacteristicsDto} from './dtos/characteristics.dto';
+import { ObjectCharacteristicsAssociation } from 'src/objects/entities/ObjectCharacteristicsAssociation';
 
 
 @Injectable()
@@ -24,6 +25,8 @@ export class CharacteristicsService {
         private readonly characteristicsPossibleOptionsRepository: Repository<CharacteristicsPossibleOptions>,
         @InjectRepository(Characteristics)
         private readonly characteristicsRepository: Repository<Characteristics>,
+        @InjectRepository(ObjectCharacteristicsAssociation)
+        private readonly objectCharacteristicsAssociationRepository: Repository<ObjectCharacteristicsAssociation>,
     ) {}
 
     // Create characteristics type
@@ -74,7 +77,7 @@ export class CharacteristicsService {
     }
 
     // Delete characteristics type and associated relations
-    async deleteCharacteristicsType(dto: DeleteCharacteristicsTypeDto): Promise<string> {
+    async deleteCharacteristicsType(dto: DeleteCharacteristicsTypeDto): Promise<any> {
         try {
             const characteristicsType = await this.characteristicsTypeRepository.findOne({
                 where: {
@@ -97,7 +100,20 @@ export class CharacteristicsService {
                     },
                 },
             });
-    
+
+            //delete from object_characteristics_association all the lines with the characteristics associated
+            const objectCharacteristicsAssociation = await this.objectCharacteristicsAssociationRepository.find({
+                where: {
+                    characteristics: {
+                        id: In(characteristics.map(c => c.id)),
+                    },
+                },
+            });
+
+            if (objectCharacteristicsAssociation.length > 0) {
+                await this.objectCharacteristicsAssociationRepository.remove(objectCharacteristicsAssociation);
+            }
+
             await this.characteristicsRepository.remove(characteristics);
     
             // Delete characteristicsPossibleOptions
@@ -170,7 +186,7 @@ export class CharacteristicsService {
     }
 
     // Delete characteristics type and associated relations
-    async deleteProfileCharacteristicsType(dto: DeleteCharacteristicsTypeDto): Promise<string> {
+    async deleteProfileCharacteristicsType(dto: DeleteCharacteristicsTypeDto): Promise<any> {
         try {
             const profileCharacteristicsType = await this.profileCharacteristicsTypeRepository.findOne({
                 where: {
@@ -193,6 +209,19 @@ export class CharacteristicsService {
                     },
                 },
             });
+
+            //delete from object_characteristics_association all the lines with the characteristics associated
+            const objectCharacteristicsAssociation = await this.objectCharacteristicsAssociationRepository.find({
+                where: {
+                    characteristics: {
+                        id: In(characteristics.map(c => c.id)),
+                    },
+                },
+            });
+
+            if (objectCharacteristicsAssociation.length > 0) {
+                await this.objectCharacteristicsAssociationRepository.remove(objectCharacteristicsAssociation);
+            }
     
             await this.characteristicsRepository.remove(characteristics);
     
@@ -564,6 +593,19 @@ export class CharacteristicsService {
     // Delete characteristics
     async deleteCharacteristics(params: GetCharacteristicsByNameDto): Promise<any> {
         try {
+            //delete from object_characteristics_association
+            const objectCharacteristicsAssociation = await this.objectCharacteristicsAssociationRepository.find({
+                where: {
+                    characteristics: {
+                        name: params.name,
+                    },
+                },
+            });
+
+            if (objectCharacteristicsAssociation.length > 0) {
+                await this.objectCharacteristicsAssociationRepository.remove(objectCharacteristicsAssociation);
+            }
+
             const characteristics = await this.characteristicsRepository.findOne({
                 where: {
                     name: params.name,

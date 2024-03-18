@@ -6,7 +6,8 @@ import { ApiTags } from '@nestjs/swagger';
 import { FileInterceptor, FilesInterceptor } from '@nestjs/platform-express';
 import { UseInterceptors, UploadedFile, BadRequestException,Req, UploadedFiles } from '@nestjs/common';
 import { Request } from 'express';
-import { ApiOperation, ApiConsumes, ApiBody } from '@nestjs/swagger';
+import { ApiOperation, ApiConsumes, ApiBody, ApiQuery, ApiParam} from '@nestjs/swagger';
+
 
 
 @ApiTags('Objects')
@@ -25,7 +26,10 @@ export class ObjectsController {
     }
     
     @Get(':objectType')
-    @ApiOperation({ summary: 'Get all Objects' })
+    @ApiOperation({ summary: 'Get all Objects by object type and optionally by characteristic and selected option' })
+    @ApiParam({ name: 'objectType', description: 'Type of object' })
+    @ApiQuery({ name: 'characteristic', required: false, description: 'Characteristic' })
+    @ApiQuery({ name: 'option_selected', required: false, description: 'Selected option' })
     async getObjects(
         @Param('objectType') objectType: string,
         @Query('characteristic') characteristic?: string,
@@ -46,6 +50,7 @@ export class ObjectsController {
     @ApiOperation({ summary: 'Create an Object' })
     @ApiConsumes('multipart/form-data')
     @UseInterceptors(FilesInterceptor('images', 5)) // Use files interceptor for 'images' field with a limit of 5 files
+    @ApiParam({ name: 'objectType', description: 'Type of object' })
     async createObject(
         @Param('objectType') objectType: string,
         @UploadedFiles() images: Array<Express.Multer.File>,

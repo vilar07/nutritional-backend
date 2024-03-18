@@ -6,6 +6,8 @@ import { CharacteristicsType } from './entities/CharacteristicsType';
 import { ProfileCharacteristicsType } from './entities/ProfileCharacteristicsType';
 import { Characteristics } from './entities/Characteristics';
 import { CharacteristicsPossibleOptions } from './entities/CharacteristicsPossibleOptions';
+import { ObjectCharacteristicsAssociation } from 'src/objects/entities/ObjectCharacteristicsAssociation';
+import { UserCharacteristicAssociation } from 'src/users/entities/UserCharacteristicAssociation';
 
 @Module({
   imports: [
@@ -15,6 +17,8 @@ import { CharacteristicsPossibleOptions } from './entities/CharacteristicsPossib
       // ... include other entities here
       CharacteristicsPossibleOptions,
       Characteristics,
+      ObjectCharacteristicsAssociation,
+      UserCharacteristicAssociation,
     ]),
   ],
   controllers: [CharacteristicsController],

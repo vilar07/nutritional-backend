@@ -11,6 +11,7 @@ import { Forms } from './entities/Forms';
 import { MealCards } from './entities/MealCards';
 import { ObjectCharacteristicsAssociation } from './entities/ObjectCharacteristicsAssociation';
 import { Characteristics } from 'src/characteristics/entities/Characteristics';
+import { UserCharacteristicAssociation } from 'src/users/entities/UserCharacteristicAssociation';
 
 
 @Module({
@@ -24,7 +25,8 @@ import { Characteristics } from 'src/characteristics/entities/Characteristics';
       Forms,
       MealCards,
       ObjectCharacteristicsAssociation,
-      Characteristics
+      Characteristics,
+      UserCharacteristicAssociation,
     ]),
   ],
   controllers: [ObjectsController],
