@@ -1,7 +1,7 @@
 import { Injectable, Logger } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { User } from './entities/User';
-import { In, Repository } from 'typeorm';
+import { In, Not, Repository } from 'typeorm';
 import { HttpStatus } from '@nestjs/common';
 import { AssociateCharacteristicsDto, CreateUserDto } from './dtos/users.dto';
 import { UserCharacteristicAssociation } from './entities/UserCharacteristicAssociation';
@@ -103,23 +103,58 @@ export class UsersService {
 
             // Go through each characteristic and its selected option and associate it to the user
             //Check if it already exists, and if yes update the trust level by 1
-            for (let i = 0; i < associations.characteristics.length; i++) {
-                const characteristic = await this.characteristicsRepository.findOne({ where: { name: associations.characteristics[i].characteristic } });
+            // Increase the trust levels for selected options
+            for (const association of associations.characteristics) {
+                const characteristic = await this.characteristicsRepository.findOne({ where: { name: association.characteristic } });
                 if (!characteristic) {
                     throw new HttpException('Characteristic not found', HttpStatus.NOT_FOUND);
                 }
-                const userCharacteristicAssociation = await this.userCharacteristicAssociationRepository.findOne({ where: { option: associations.characteristics[i].option_selected, user: user, characteristics: characteristic } });
-                console.log("existe a option:",userCharacteristicAssociation);
+
+                const optionSelected = association.option_selected;
+                let userCharacteristicAssociation = await this.userCharacteristicAssociationRepository.findOne({ where: { option: optionSelected, user, characteristics: characteristic } });
                 if (userCharacteristicAssociation) {
-                    userCharacteristicAssociation.trust_level = userCharacteristicAssociation.trust_level + 1;
-                    await this.userCharacteristicAssociationRepository.save(userCharacteristicAssociation);
+                    userCharacteristicAssociation.trust_level++;
                 } else {
-                    const userCharacteristicAssociation = new UserCharacteristicAssociation();
+                    userCharacteristicAssociation = new UserCharacteristicAssociation();
                     userCharacteristicAssociation.user = [user];
                     userCharacteristicAssociation.characteristics = [characteristic];
-                    userCharacteristicAssociation.option = associations.characteristics[i].option_selected;
+                    userCharacteristicAssociation.option = optionSelected;
                     userCharacteristicAssociation.trust_level = 1;
-                    await this.userCharacteristicAssociationRepository.save(userCharacteristicAssociation);
+                }
+                await this.userCharacteristicAssociationRepository.save(userCharacteristicAssociation);
+            }
+
+            // Decrease the trust levels for other options of the same characteristic
+            const uniqueCharacteristics = new Set<string>();
+            // Decrease the trust levels for other options of the same characteristic
+            for (const association of associations.characteristics) {
+                const characteristicName = association.characteristic;
+                if (uniqueCharacteristics.has(characteristicName)) {
+                    continue; // Skip if the characteristic has already been processed
+                }
+                
+                uniqueCharacteristics.add(characteristicName);
+
+                const characteristic = await this.characteristicsRepository.findOne({ where: { name: characteristicName } });
+                if (!characteristic) {
+                    throw new HttpException('Characteristic not found', HttpStatus.NOT_FOUND);
+                }
+
+                const optionsSelected = associations.characteristics
+                    .filter(c => c.characteristic === characteristicName)
+                    .map(c => c.option_selected);
+
+                const otherAssociations = await this.userCharacteristicAssociationRepository.find({
+                    where: { user, characteristics: characteristic, option: Not(In(optionsSelected)) },
+                });
+
+                for (const otherAssociation of otherAssociations) {
+                    if (!optionsSelected.includes(otherAssociation.option)) {
+                        // Decrease trust level by 1 only if the option is not selected
+                        console.log(`Decreasing trust level for ${otherAssociation.option}`);
+                        otherAssociation.trust_level = Math.max(0, otherAssociation.trust_level - 1);
+                        await this.userCharacteristicAssociationRepository.save(otherAssociation);
+                    }
                 }
             }
             return {
