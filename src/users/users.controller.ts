@@ -44,6 +44,15 @@ export class UsersController {
         return await this.usersService.deleteUser(email);
     }
 
+    //Get characteristics of an User
+    @Get('/characteritics/:email')
+    @ApiOperation({ summary: 'Get Characteristics of an User' })
+    async getUserCharacteristics(
+        @Param('email') email: string
+    ) {
+        return await this.usersService.getUserCharacteristics(email);
+    }
+
     //Associate Characteristics to an User
     @Post('/characteritics/:email')
     @ApiOperation({ summary: 'Associate Characteristics to an User' })

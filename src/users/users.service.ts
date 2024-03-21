@@ -87,6 +87,20 @@ export class UsersService {
         };
     }
 
+    async getUserCharacteristics(email: string) {
+        const user = await this.userRepository.findOne({ where: { email } });
+        if (!user) {
+            throw new HttpException('User not found', HttpStatus.NOT_FOUND);
+        }
+        const userCharacteristics = await this.userCharacteristicAssociationRepository.find(
+            { where: { user }, relations: ['characteristics']}
+        );
+        return {
+            status: HttpStatus.OK,
+            data: userCharacteristics,
+        };
+    }
+
     async associateCharacteristics(email: string, associations: AssociateCharacteristicsDto) {
         try{
             const user = await this.userRepository.findOne({ where: { email } });
@@ -113,6 +127,10 @@ export class UsersService {
                 const optionSelected = association.option_selected;
                 let userCharacteristicAssociation = await this.userCharacteristicAssociationRepository.findOne({ where: { option: optionSelected, user, characteristics: characteristic } });
                 if (userCharacteristicAssociation) {
+                    //if trust_level is 10, do not increase it
+                    if(userCharacteristicAssociation.trust_level === 10){
+                        continue;
+                    }
                     userCharacteristicAssociation.trust_level++;
                 } else {
                     userCharacteristicAssociation = new UserCharacteristicAssociation();
