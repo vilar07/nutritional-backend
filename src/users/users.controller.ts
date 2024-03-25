@@ -12,6 +12,20 @@ export class UsersController {
     private readonly logger = new Logger(UsersController.name);
     constructor(private readonly usersService: UsersService){}
 
+    // Endpoint para obter a matriz de associação entre usuários e características
+    @Get('/characteristic-matrix')
+    async getUserCharacteristicMatrix() {
+        return await this.usersService.generateUserCharacteristicMatrix();
+    }
+
+    //Calculate Similarities between one user and the others
+    @Get('/similarity/:email')
+    async calculateSimilarities(
+        @Param('email') email: string
+    ) {
+        return await this.usersService.calculateUserSimilarities(email);
+    }
+
     //Get all users
     @Get()
     @ApiOperation({ summary: 'Get All Users' })
@@ -62,4 +76,6 @@ export class UsersController {
     ){
         return await this.usersService.associateCharacteristics(email, associations);
     }
+
+    
 }

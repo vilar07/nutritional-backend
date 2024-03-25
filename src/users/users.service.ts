@@ -55,7 +55,12 @@ export class UsersService {
     }
 
     async createUser(createUserDto: CreateUserDto): Promise<any> {
-        const existingUser = await this.userRepository.findOne({ where: { email: createUserDto.email } });
+        const existingUser = await this.userRepository.findOne({ 
+            where: [
+                { email: createUserDto.email },
+                { username: createUserDto.username }
+            ]
+        });
         if (existingUser) {
             this.logger.error('User already exists');
             return {
@@ -189,6 +194,150 @@ export class UsersService {
         
         
       }
+
+      async generateUserCharacteristicMatrix(): Promise<any> {
+        const users = await this.userRepository.find(); // Retrieve all users from the database
+        const userAssociations = await this.userCharacteristicAssociationRepository.find({ relations: ['user', 'characteristics'] });
+        console.log(userAssociations);
+        // Initialize the matrix with zeros
+        const matrix: number[][] = [];
+        const characteristicsLabels: string[] = [];
+    
+        // Create a map to store the index of each characteristic label
+        const characteristicIndexMap: { [label: string]: number } = {};
+    
+        // Iterate over each user
+        for (const user of users) {
+            // Filter associations for the current user
+            const userAssociationsFiltered = userAssociations.filter(association =>
+                association.user.some(assocUser => assocUser.id === user.id)
+            );
+    
+            // Create an array to store the trust levels for the current user
+            const userTrustLevels: number[] = [];
+    
+            // Populate the trust levels array with trust levels
+            userAssociationsFiltered.forEach(association => {
+                const characteristicLabel = `${association.characteristics[0].name}: ${association.option}`;
+                let characteristicIndex = characteristicIndexMap[characteristicLabel];
+    
+                if (characteristicIndex === undefined) {
+                    // If the characteristic label is not found in the map, add it to the characteristicsLabels array
+                    characteristicIndex = characteristicsLabels.length;
+                    characteristicsLabels.push(characteristicLabel);
+                    characteristicIndexMap[characteristicLabel] = characteristicIndex;
+                }
+    
+                // Ensure the trust levels array is large enough to hold the trust level for this characteristic
+                while (userTrustLevels.length <= characteristicIndex) {
+                    userTrustLevels.push(0);
+                }
+    
+                // Set the trust level for this characteristic
+                userTrustLevels[characteristicIndex] = association.trust_level;
+            });
+    
+            // Push the trust levels array to the matrix
+            matrix.push(userTrustLevels);
+        }
+    
+        // Fill the matrix with zeros for characteristics not associated with any user
+        const maxCharacteristicsIndex = characteristicsLabels.length - 1;
+        matrix.forEach(row => {
+            while (row.length <= maxCharacteristicsIndex) {
+                row.push(0);
+            }
+        });
+    
+        return {
+            matrix,
+            users: users.map(user => user.email),
+            characteristics: characteristicsLabels
+        };
+    }
+
+    async cosineSimilarity(user1Id: number, user2Id: number, userMatrix: number[][]): Promise<number> {
+        const vector1 = userMatrix[user1Id];
+        const vector2 = userMatrix[user2Id];
+    
+        // Calculate dot product, considering trust levels
+        let dotProduct = 0;
+        for (let i = 0; i < vector1.length; i++) {
+            dotProduct += vector1[i] * vector2[i] * Math.min(vector1[i], vector2[i]); // Using minimum trust level
+        }
+    
+        // Calculate magnitudes, considering trust levels
+        let magnitude1 = Math.sqrt(vector1.reduce((acc, val) => acc + val ** 2, 0));
+        let magnitude2 = Math.sqrt(vector2.reduce((acc, val) => acc + val ** 2, 0));
+    
+        // Calculate cosine similarity
+        const cosineSimilarity = dotProduct / (magnitude1 * magnitude2);
+
+    
+        return cosineSimilarity;
+    }
+
+    async calculateUserSimilarities(userEmail: string): Promise<any> {
+        // Encontre o usuário com o email fornecido
+        const user = await this.userRepository.findOne({ where: { email: userEmail } });
+        if (!user) {
+            console.log(`User with email ${userEmail} not found.`);
+            return;
+        }
+    
+        // Gerar a matriz de características do usuário
+        const matrixData = await this.generateUserCharacteristicMatrix();
+        const { matrix, users, characteristics } = matrixData;
+    
+        // Encontre o índice do usuário na matriz
+        const userIndex = users.findIndex((u: string) => u === user.email);
+    
+        // Encontre todos os outros usuários no banco de dados
+        const otherUsers = await this.userRepository.find({ where: { email: Not(userEmail) } });
+    
+        // Calcular similaridades entre o usuário dado e todos os outros usuários
+        const similarities: { user1: string; user2: string; similarity: number }[] = [];
+        for (const otherUser of otherUsers) {
+            // Encontre o índice do outro usuário na matriz
+            const otherUserIndex = users.findIndex((u: string) => u === otherUser.email);
+    
+            // Calcule a similaridade do cosseno usando os índices
+            const similarity = await this.cosineSimilarity(userIndex, otherUserIndex, matrix);
+            similarities.push({ user1: user.email, user2: otherUser.email, similarity });
+        }
+        
+    
+        // Ordene as similaridades em ordem decrescente
+        similarities.sort((a, b) => b.similarity - a.similarity);
+        
+        // Retorne os dois usuários mais similares
+        const mostSimilarUsers = similarities.slice(0, 2);
+    
+        // Obtenha as características com os níveis de confiança mais altos dos dois usuários mais similares
+        const recommendedCharacteristics: { user: string; characteristics: { [label: string]: number } }[] = [];
+        for (const similarUser of mostSimilarUsers) {
+            console.log(`Similarity between ${similarUser.user1} and ${similarUser.user2}:`, similarUser.similarity);
+            const similarUserIndex = users.findIndex((u: string) => u === similarUser.user2);
+            const userCharacteristics = matrix[similarUserIndex];
+            console.log(userCharacteristics);
+    
+            const userRecommendedCharacteristics: { [label: string]: number } = {};
+            // Define the minimum trust level threshold
+
+            const minTrustLevel = 3; // Adjust as needed
+            // Populate the userRecommendedCharacteristics object
+            for (let i = 0; i < userCharacteristics.length; i++) {
+                const trustLevel = userCharacteristics[i];
+                if (trustLevel > minTrustLevel) {
+                    userRecommendedCharacteristics[characteristics[i]] = trustLevel;
+                }
+            }
+            recommendedCharacteristics.push({ user: similarUser.user2, characteristics: userRecommendedCharacteristics });
+        }
+    
+        console.log(`Two most similar users to ${userEmail}:`, mostSimilarUsers);
+        console.log(`Recommended characteristics for user ${userEmail}:`, recommendedCharacteristics);
+    }
 
     
 }
