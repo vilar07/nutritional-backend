@@ -13,6 +13,7 @@ import { HttpException } from '@nestjs/common';
 import { NotFoundException, BadRequestException } from '@nestjs/common';
 import { Calculators } from './entities/Calculators';
 import { Carousels } from './entities/Carousels';
+import { get } from 'http';
 
 
 
@@ -43,7 +44,9 @@ export class ObjectsService {
             });
     
             const uniqueCharacteristicsArray = Array.from(uniqueCharacteristics);
+            console.log('Unique characteristics:', uniqueCharacteristicsArray);
             const objects: { [key: string]: any[] } = { articles: [], calculators: [], carousels: [] };
+            const addedObjectIDs: { [key: string]: Set<string> } = { articles: new Set(), calculators: new Set(), carousels: new Set() };
     
             for (const characteristic of uniqueCharacteristicsArray) {
                 const [category, option] = characteristic.split(':').map(str => str.trim());
@@ -53,7 +56,13 @@ export class ObjectsService {
                     // Retrieve objects only for the specified type
                     result = await this.getObjects(objectType, category, option);
                     if (Array.isArray(result)) {
-                        objects[objectType] = [...objects[objectType], ...result.map(obj => ({ ...obj }))];
+                        for (const obj of result) {
+                            // Check if the object ID is already added, if not, add it
+                            if (typeof obj.ID === 'string' && !addedObjectIDs[objectType].has(obj.ID)) {
+                                objects[objectType].push({ ...obj }); // Creating a shallow copy of the object
+                                addedObjectIDs[objectType].add(obj.ID);
+                            }
+                        }
                     }
                 } else {
                     // Retrieve all types of objects
@@ -63,17 +72,31 @@ export class ObjectsService {
     
                     // Push objects into respective arrays
                     if (Array.isArray(articles)) {
-                        objects.articles.push(...articles.map(obj => ({ ...obj })));
+                        for (const obj of articles) {
+                            if (typeof obj.ID === 'string' && !addedObjectIDs.articles.has(obj.ID)) {
+                                objects.articles.push({ ...obj }); // Creating a shallow copy of the object
+                                addedObjectIDs.articles.add(obj.ID);
+                            }
+                        }
                     }
                     if (Array.isArray(calculators)) {
-                        objects.calculators.push(...calculators.map(obj => ({ ...obj })));
+                        for (const obj of calculators) {
+                            if (typeof obj.ID === 'string' && !addedObjectIDs.calculators.has(obj.ID)) {
+                                objects.calculators.push({ ...obj }); // Creating a shallow copy of the object
+                                addedObjectIDs.calculators.add(obj.ID);
+                            }
+                        }
                     }
                     if (Array.isArray(carousels)) {
-                        objects.carousels.push(...carousels.map(obj => ({ ...obj })));
+                        for (const obj of carousels) {
+                            if (typeof obj.ID === 'string' && !addedObjectIDs.carousels.has(obj.ID)) {
+                                objects.carousels.push({ ...obj }); // Creating a shallow copy of the object
+                                addedObjectIDs.carousels.add(obj.ID);
+                            }
+                        }
                     }
                 }
             }
-    
     
             return objects;
         } catch (error) {
@@ -1173,6 +1196,96 @@ export class ObjectsService {
         } catch (error) {
             if (error instanceof NotFoundException) {
                 throw new NotFoundException('Error updating associations');
+            } else {
+                throw error;
+            }
+        }
+    }
+
+    async incrementViews(objectType: string, id: number): Promise<any> {
+        try {
+            switch(objectType) {
+                case 'article':
+                    return await this.incrementArticleViews(id);
+                case 'calculator':
+                    return await this.incrementCalculatorViews(id);
+                case 'carousel':
+                    return await this.incrementCarouselViews(id);
+                default:
+                    throw new BadRequestException('Invalid object type');
+            }
+        } catch (error) {
+            if (error instanceof NotFoundException) {
+                throw new NotFoundException('Error incrementing views');
+            } else {
+                throw error;
+            }
+        }
+    }
+
+    async incrementArticleViews(id: number): Promise<any> {
+        try {
+            const article = await this.articlesRepository.findOne({ where: { ID: id } });
+            if (!article) {
+                throw new HttpException('Article not found', HttpStatus.NOT_FOUND);
+            }
+    
+            article.views += 1;
+            await this.articlesRepository.save(article);
+    
+            return {
+                status: HttpStatus.OK,
+                message: 'Article views incremented',
+            };
+        } catch (error) {
+            if (error instanceof NotFoundException) {
+                throw new NotFoundException('Error incrementing article views');
+            } else {
+                throw error;
+            }
+        }
+    }
+
+    async incrementCalculatorViews(id: number): Promise<any> {
+        try {
+            const calculator = await this.calculatorsRepository.findOne({ where: { ID: id } });
+            if (!calculator) {
+                throw new HttpException('Calculator not found', HttpStatus.NOT_FOUND);
+            }
+    
+            calculator.views += 1;
+            await this.calculatorsRepository.save(calculator);
+    
+            return {
+                status: HttpStatus.OK,
+                message: 'Calculator views incremented',
+            };
+        } catch (error) {
+            if (error instanceof NotFoundException) {
+                throw new NotFoundException('Error incrementing calculator views');
+            } else {
+                throw error;
+            }
+        }
+    }
+
+    async incrementCarouselViews(id: number): Promise<any> {
+        try {
+            const carousel = await this.carouselsRepository.findOne({ where: { ID: id } });
+            if (!carousel) {
+                throw new HttpException('Carousel not found', HttpStatus.NOT_FOUND);
+            }
+    
+            carousel.views += 1;
+            await this.carouselsRepository.save(carousel);
+    
+            return {
+                status: HttpStatus.OK,
+                message: 'Carousel views incremented',
+            };
+        } catch (error) {
+            if (error instanceof NotFoundException) {
+                throw new NotFoundException('Error incrementing carousel views');
             } else {
                 throw error;
             }

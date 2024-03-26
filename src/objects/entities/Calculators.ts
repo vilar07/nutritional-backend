@@ -27,6 +27,9 @@ export class Calculators {
   @Column({ type: 'varchar', nullable: true })
   image: string;
 
+  @Column({ type: 'int', default: 0 }) // Adicionando o campo de número de visualizações
+  views: number;
+
   @Column({ type: 'timestamp', default: () => 'CURRENT_TIMESTAMP' })
   created_at: Date;
 

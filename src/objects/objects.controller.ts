@@ -175,4 +175,17 @@ export class ObjectsController {
         return await this.objectsService.updateAssociations(params, associations);
     }
 
+    //Increment the number of views of an object when clicked by the user
+    @Put('views/:objectType/:id')
+    @ApiOperation({ summary: 'Incrementhe number of views of an object when clicked by the user' })
+    async incrementViews(
+        @Param('objectType') objectType: string,
+        @Param('id') id: number
+    ) {
+        return await this.objectsService.incrementViews(objectType, id);
+    }
+    
+    
+    
+
 }

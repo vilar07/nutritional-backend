@@ -22,6 +22,9 @@ export class Carousels{
     @Column({ type: 'text'})
     images: string;
 
+    @Column({ type: 'int', default: 0 }) // Adicionando o campo de número de visualizações
+    views: number;
+
     @Column({ type: 'timestamp', default: () => 'CURRENT_TIMESTAMP' })
     created_at: Date;
 
