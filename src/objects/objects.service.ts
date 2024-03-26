@@ -33,6 +33,54 @@ export class ObjectsService {
 
     ) {}
 
+    async getObjectsByRecommendedCharacteristics(recommendedCharacteristics: { user: string; characteristics: { [label: string]: number } }[], objectType?: string) {
+        try {
+            const uniqueCharacteristics: Set<string> = new Set();
+            recommendedCharacteristics.forEach(rc => {
+                Object.keys(rc.characteristics).forEach(label => {
+                    uniqueCharacteristics.add(label);
+                });
+            });
+    
+            const uniqueCharacteristicsArray = Array.from(uniqueCharacteristics);
+            const objects: { [key: string]: any[] } = { articles: [], calculators: [], carousels: [] };
+    
+            for (const characteristic of uniqueCharacteristicsArray) {
+                const [category, option] = characteristic.split(':').map(str => str.trim());
+                let result;
+    
+                if (objectType) {
+                    // Retrieve objects only for the specified type
+                    result = await this.getObjects(objectType, category, option);
+                    if (Array.isArray(result)) {
+                        objects[objectType] = [...objects[objectType], ...result.map(obj => ({ ...obj }))];
+                    }
+                } else {
+                    // Retrieve all types of objects
+                    const articles = await this.getObjects('articles', category, option);
+                    const calculators = await this.getObjects('calculators', category, option);
+                    const carousels = await this.getObjects('carousels', category, option);
+    
+                    // Push objects into respective arrays
+                    if (Array.isArray(articles)) {
+                        objects.articles.push(...articles.map(obj => ({ ...obj })));
+                    }
+                    if (Array.isArray(calculators)) {
+                        objects.calculators.push(...calculators.map(obj => ({ ...obj })));
+                    }
+                    if (Array.isArray(carousels)) {
+                        objects.carousels.push(...carousels.map(obj => ({ ...obj })));
+                    }
+                }
+            }
+    
+    
+            return objects;
+        } catch (error) {
+            throw new Error('Error getting objects by recommended characteristics');
+        }
+    }
+
     async getObjects(objectType: string, characteristic?: string, optionSelected?: string) {
         try {
             switch(objectType) {
@@ -105,19 +153,21 @@ export class ObjectsService {
     
             // Check if all associations have no articles
             if (associations.every(association => association.articles.length === 0)) {
-                throw new HttpException('No articles found for the given characteristic.', HttpStatus.NOT_FOUND);
+                console.log('No articles found for the given characteristic.');
+                return []; // Return an empty array if no articles are found
             }
         
             // Filter associations with non-empty articles arrays and get article IDs
             const articlesIDs = associations
             .filter(association => association.articles.length > 0)
             .map(association => association.articles[0].ID);
-
+    
             // Check if there are no articles found
             if (articlesIDs.length === 0) {
-            throw new HttpException('No articles found for the given characteristic.', HttpStatus.NOT_FOUND);
+            console.log('No articles found for the given characteristic.');
+            return []; // Return an empty array if no articles are found
             }
-
+    
             // Retrieve articles by IDs
             return this.articlesRepository.find({
             where: { ID: In(articlesIDs) },
@@ -170,27 +220,27 @@ export class ObjectsService {
             }
         
             if (associations.length === 0) {
-                return {
-                    status: HttpStatus.NOT_FOUND,
-                    message: 'No calculators found',
-                };
+                console.log('No calculators found for the given characteristic.');
+                return []; // Return an empty array if no calculators are found
             }
         
             // Check if all associations have no calculators
             if (associations.every(association => association.calculators.length === 0)) {
-                throw new HttpException('No calculators found for the given characteristic.', HttpStatus.NOT_FOUND);
+                console.log('No calculators found for the given characteristic.');
+                return []; // Return an empty array if no calculators are found
             }
         
             // Filter associations with non-empty calculators arrays and get calculator IDs
             const calculatorsIDs = associations
             .filter(association => association.calculators.length > 0)
             .map(association => association.calculators[0].ID);
-
+    
             // Check if there are no calculators found
             if (calculatorsIDs.length === 0) {
-            throw new HttpException('No calculators found for the given characteristic.', HttpStatus.NOT_FOUND);
+            console.log('No calculators found for the given characteristic.');
+            return []; // Return an empty array if no calculators are found
             }
-
+    
             // Retrieve calculators by IDs
             return this.calculatorsRepository.find({
             where: { ID: In(calculatorsIDs) },
@@ -242,29 +292,27 @@ export class ObjectsService {
             }
         
             if (associations.length === 0) {
-                return {
-                    status: HttpStatus.NOT_FOUND,
-                    message: 'No carousels found',
-                };
+                console.log('No carousels found for the given characteristic.');
+                return []; // Return an empty array if no carousels are found
             }
-
-            console.log("associations:", associations)
-
+    
             // Check if all associations have no carousels
             if (associations.every(association => association.carousels.length === 0)) {
-                throw new HttpException('No carousels found for the given characteristic.', HttpStatus.NOT_FOUND);
+                console.log('No carousels found for the given characteristic.');
+                return []; // Return an empty array if no carousels are found
             }
         
             // Filter associations with non-empty carousels arrays and get carousel IDs
             const carouselIDs = associations
             .filter(association => association.carousels.length > 0)
             .map(association => association.carousels[0].ID);
-
+    
             // Check if there are no carousels found
             if (carouselIDs.length === 0) {
-            throw new HttpException('No carousels found for the given characteristic.', HttpStatus.NOT_FOUND);
+            console.log('No carousels found for the given characteristic.');
+            return []; // Return an empty array if no carousels are found
             }
-
+    
             // Retrieve carousels by IDs
             return this.carouselsRepository.find({
             where: { ID: In(carouselIDs) },

@@ -6,6 +6,7 @@ import { User } from './entities/User';
 import { UserCharacteristicAssociation } from './entities/UserCharacteristicAssociation';
 import { Characteristics } from 'src/characteristics/entities/Characteristics';
 import { ObjectCharacteristicsAssociation } from 'src/objects/entities/ObjectCharacteristicsAssociation';
+import { ObjectsModule } from 'src/objects/objects.module'; // Importe o ObjectsModule aqui
 
 
 @Module({
@@ -16,8 +17,9 @@ import { ObjectCharacteristicsAssociation } from 'src/objects/entities/ObjectCha
       Characteristics,
       ObjectCharacteristicsAssociation,
     ]),
+    ObjectsModule, // Importe e adicione o ObjectsModule aqui
   ],
   controllers: [UsersController],
-  providers: [UsersService]
+  providers: [UsersService],
 })
 export class UsersModule {}

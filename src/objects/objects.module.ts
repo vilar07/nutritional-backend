@@ -28,8 +28,10 @@ import { UserCharacteristicAssociation } from 'src/users/entities/UserCharacteri
       Characteristics,
       UserCharacteristicAssociation,
     ]),
+    ObjectsModule, // Importe e adicione o ObjectsModule aqui
   ],
   controllers: [ObjectsController],
-  providers: [ObjectsService]
+  providers: [ObjectsService],
+  exports: [ObjectsService], // Exporte o ObjectsService, se necessário
 })
 export class ObjectsModule {}

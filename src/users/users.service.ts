@@ -8,6 +8,7 @@ import { UserCharacteristicAssociation } from './entities/UserCharacteristicAsso
 import { HttpException } from '@nestjs/common';
 import { Characteristics } from 'src/characteristics/entities/Characteristics';
 import { NotFoundException } from '@nestjs/common';
+import { ObjectsService } from 'src/objects/objects.service'; // Importe o ObjectsService aqui
 
 
 
@@ -21,6 +22,8 @@ export class UsersService {
         private readonly userCharacteristicAssociationRepository: Repository<UserCharacteristicAssociation>,
         @InjectRepository(Characteristics)
         private readonly characteristicsRepository: Repository<Characteristics>,
+        private readonly objectsService: ObjectsService // Adicione o ObjectsService aqui
+        
 
     ) {}
 
@@ -278,65 +281,73 @@ export class UsersService {
     }
 
     async calculateUserSimilarities(userEmail: string): Promise<any> {
-        // Encontre o usuário com o email fornecido
-        const user = await this.userRepository.findOne({ where: { email: userEmail } });
-        if (!user) {
-            console.log(`User with email ${userEmail} not found.`);
-            return;
-        }
-    
-        // Gerar a matriz de características do usuário
-        const matrixData = await this.generateUserCharacteristicMatrix();
-        const { matrix, users, characteristics } = matrixData;
-    
-        // Encontre o índice do usuário na matriz
-        const userIndex = users.findIndex((u: string) => u === user.email);
-    
-        // Encontre todos os outros usuários no banco de dados
-        const otherUsers = await this.userRepository.find({ where: { email: Not(userEmail) } });
-    
-        // Calcular similaridades entre o usuário dado e todos os outros usuários
-        const similarities: { user1: string; user2: string; similarity: number }[] = [];
-        for (const otherUser of otherUsers) {
-            // Encontre o índice do outro usuário na matriz
-            const otherUserIndex = users.findIndex((u: string) => u === otherUser.email);
-    
-            // Calcule a similaridade do cosseno usando os índices
-            const similarity = await this.cosineSimilarity(userIndex, otherUserIndex, matrix);
-            similarities.push({ user1: user.email, user2: otherUser.email, similarity });
-        }
-        
-    
-        // Ordene as similaridades em ordem decrescente
-        similarities.sort((a, b) => b.similarity - a.similarity);
-        
-        // Retorne os dois usuários mais similares
-        const mostSimilarUsers = similarities.slice(0, 2);
-    
-        // Obtenha as características com os níveis de confiança mais altos dos dois usuários mais similares
-        const recommendedCharacteristics: { user: string; characteristics: { [label: string]: number } }[] = [];
-        for (const similarUser of mostSimilarUsers) {
-            console.log(`Similarity between ${similarUser.user1} and ${similarUser.user2}:`, similarUser.similarity);
-            const similarUserIndex = users.findIndex((u: string) => u === similarUser.user2);
-            const userCharacteristics = matrix[similarUserIndex];
-            console.log(userCharacteristics);
-    
-            const userRecommendedCharacteristics: { [label: string]: number } = {};
-            // Define the minimum trust level threshold
-
-            const minTrustLevel = 3; // Adjust as needed
-            // Populate the userRecommendedCharacteristics object
-            for (let i = 0; i < userCharacteristics.length; i++) {
-                const trustLevel = userCharacteristics[i];
-                if (trustLevel > minTrustLevel) {
-                    userRecommendedCharacteristics[characteristics[i]] = trustLevel;
-                }
+        try {
+            // Encontre o usuário com o email fornecido
+            const user = await this.userRepository.findOne({ where: { email: userEmail } });
+            if (!user) {
+                console.log(`User with email ${userEmail} not found.`);
+                return;
             }
-            recommendedCharacteristics.push({ user: similarUser.user2, characteristics: userRecommendedCharacteristics });
-        }
+        
+            // Gerar a matriz de características do usuário
+            const matrixData = await this.generateUserCharacteristicMatrix();
+            const { matrix, users, characteristics } = matrixData;
+        
+            // Encontre o índice do usuário na matriz
+            const userIndex = users.findIndex((u: string) => u === user.email);
+        
+            // Encontre todos os outros usuários no banco de dados
+            const otherUsers = await this.userRepository.find({ where: { email: Not(userEmail) } });
+        
+            // Calcular similaridades entre o usuário dado e todos os outros usuários
+            const similarities: { user1: string; user2: string; similarity: number }[] = [];
+            for (const otherUser of otherUsers) {
+                // Encontre o índice do outro usuário na matriz
+                const otherUserIndex = users.findIndex((u: string) => u === otherUser.email);
+        
+                // Calcule a similaridade do cosseno usando os índices
+                const similarity = await this.cosineSimilarity(userIndex, otherUserIndex, matrix);
+                similarities.push({ user1: user.email, user2: otherUser.email, similarity });
+            }
+            
+        
+            // Ordene as similaridades em ordem decrescente
+            similarities.sort((a, b) => b.similarity - a.similarity);
+            
+            // Retorne os dois usuários mais similares
+            const mostSimilarUsers = similarities.slice(0, 2);
+        
+            // Obtenha as características com os níveis de confiança mais altos dos dois usuários mais similares
+            const recommendedCharacteristics: { user: string; characteristics: { [label: string]: number } }[] = [];
+            for (const similarUser of mostSimilarUsers) {
+                console.log(`Similarity between ${similarUser.user1} and ${similarUser.user2}:`, similarUser.similarity);
+                const similarUserIndex = users.findIndex((u: string) => u === similarUser.user2);
+                const userCharacteristics = matrix[similarUserIndex];
+                console.log(userCharacteristics);
+        
+                const userRecommendedCharacteristics: { [label: string]: number } = {};
+                // Define the minimum trust level threshold
     
-        console.log(`Two most similar users to ${userEmail}:`, mostSimilarUsers);
-        console.log(`Recommended characteristics for user ${userEmail}:`, recommendedCharacteristics);
+                const minTrustLevel = 3; // Adjust as needed
+                // Populate the userRecommendedCharacteristics object
+                for (let i = 0; i < userCharacteristics.length; i++) {
+                    const trustLevel = userCharacteristics[i];
+                    if (trustLevel > minTrustLevel) {
+                        userRecommendedCharacteristics[characteristics[i]] = trustLevel;
+                    }
+                }
+                recommendedCharacteristics.push({ user: similarUser.user2, characteristics: userRecommendedCharacteristics });
+            }
+        
+            console.log(`Two most similar users to ${userEmail}:`, mostSimilarUsers);
+            console.log(`Recommended characteristics for user ${userEmail}:`, recommendedCharacteristics);
+    
+            // Chame o método getObjectsByRecommendedCharacteristics com as características recomendadas
+            const objects = await this.objectsService.getObjectsByRecommendedCharacteristics(recommendedCharacteristics);
+            console.log('Objects obtained by recommended characteristics:', objects);
+        } catch (error) {
+            console.error('Error calculating user similarities:', error);
+        }
     }
 
     
