@@ -58,6 +58,18 @@ export class UsersController {
         return await this.usersService.deleteUser(email);
     }
 
+    //Get the number of users of a characteristic with each option
+    @Get('/characteritics/count/:characteristic')
+    @ApiOperation({ summary: 'Get the number of users of a characteristic with each option' })
+    async getUsersByCharacteristic(
+        @Param('characteristic') characteristic: string
+    ) {
+        return await this.usersService.getUsersCountByCharacteristic(characteristic);
+    }
+    
+    
+
+
     //Get characteristics of an User
     @Get('/characteritics/:email')
     @ApiOperation({ summary: 'Get Characteristics of an User' })

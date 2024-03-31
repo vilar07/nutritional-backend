@@ -131,6 +131,33 @@ export class UsersService {
   
     }
 
+    async getUsersCountByCharacteristic(characteristic: string) {
+        const characteristicObject = await this.characteristicsRepository.findOne({ where: { name: characteristic } });
+        if (!characteristicObject) {
+            throw new NotFoundException('Characteristic not found');
+        }
+
+        const userAssociations = await this.userCharacteristicAssociationRepository.find({
+            where: { characteristics: characteristicObject },
+            relations: ['user'],
+        });
+
+        const counts = userAssociations.reduce((acc, curr) => {
+            const option = curr.option;
+            if (!acc[option]) {
+                acc[option] = 0;
+            }
+            acc[option]++;
+            return acc;
+        }, {});
+
+        return {
+            status: HttpStatus.OK,
+            data: counts,
+        };
+    }
+    
+
     async associateCharacteristics(email: string, associations: AssociateCharacteristicsDto) {
         try{
             const user = await this.userRepository.findOne({ where: { email } });
