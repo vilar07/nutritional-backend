@@ -98,15 +98,37 @@ export class UsersService {
     async getUserCharacteristics(email: string) {
         const user = await this.userRepository.findOne({ where: { email } });
         if (!user) {
-            throw new HttpException('User not found', HttpStatus.NOT_FOUND);
+        throw new HttpException('User not found', HttpStatus.NOT_FOUND);
         }
-        const userCharacteristics = await this.userCharacteristicAssociationRepository.find(
-            { where: { user }, relations: ['characteristics']}
-        );
+
+        const userCharacteristics = await this.userCharacteristicAssociationRepository.find({
+        where: { user },
+        relations: ['characteristics'],
+        });
+
+        if (!userCharacteristics || userCharacteristics.length === 0) {
+        throw new HttpException('Characteristics not found', HttpStatus.NOT_FOUND);
+        }
+
+        // Grouping options by characteristic
+        const groupedCharacteristics = userCharacteristics.reduce((acc, curr) => {
+            const characteristicName = curr.characteristics[0].name;
+            if (!acc[characteristicName]) {
+                acc[characteristicName] = [];
+            }
+            acc[characteristicName].push({
+                ID: curr.ID,
+                option: curr.option,
+                trust_level: curr.trust_level,
+            });
+            return acc;
+        }, {});
+
         return {
-            status: HttpStatus.OK,
-            data: userCharacteristics,
+        status: HttpStatus.OK,
+        data: groupedCharacteristics,
         };
+  
     }
 
     async associateCharacteristics(email: string, associations: AssociateCharacteristicsDto) {
