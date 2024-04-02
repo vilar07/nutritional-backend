@@ -104,30 +104,30 @@ export class ObjectsService {
         }
     }
 
-    async getObjects(objectType: string, characteristic?: string, optionSelected?: string) {
+    async getObjects(objectType: string, characteristic?: string, optionSelected?: string, order_by?: string) {
         try {
             switch(objectType) {
                 case 'articles':
                     if (characteristic && optionSelected) {
-                        return await this.getArticlesByCharacteristic(characteristic, optionSelected);
+                        return await this.getArticlesByCharacteristic(characteristic, optionSelected, order_by);
                     } else if (characteristic) {
-                        return await this.getArticlesByCharacteristic(characteristic);
+                        return await this.getArticlesByCharacteristic(characteristic, order_by);
                     }
-                    return await this.getArticles();
+                    return await this.getArticles(order_by);
                 case 'calculators':
                     if (characteristic && optionSelected) {
-                        return await this.getCalculatorsByCharacteristic(characteristic, optionSelected);
+                        return await this.getCalculatorsByCharacteristic(characteristic, optionSelected, order_by);
                     } else if (characteristic) {
-                        return await this.getCalculatorsByCharacteristic(characteristic);
+                        return await this.getCalculatorsByCharacteristic(characteristic, order_by);
                     }
-                    return await this.getCalculators();
+                    return await this.getCalculators(order_by);
                 case 'carousels':
                     if (characteristic && optionSelected) {
-                        return await this.getCarouselsByCharacteristic(characteristic, optionSelected);
+                        return await this.getCarouselsByCharacteristic(characteristic, optionSelected, order_by);
                     } else if (characteristic) {
-                        return await this.getCarouselsByCharacteristic(characteristic);
+                        return await this.getCarouselsByCharacteristic(characteristic, order_by);
                     }
-                    return await this.getCarousels();
+                    return await this.getCarousels(order_by);
                 default:
                     throw new BadRequestException('Invalid object type');
             }
@@ -140,18 +140,39 @@ export class ObjectsService {
         }
     }
 
-    async getArticles() {
+    async getArticles(order_by?: string) {
         if (await this.articlesRepository.count() === 0) {
             return {
                 status: HttpStatus.NOT_FOUND,
                 message: 'No articles found',
             };
         }
-
-        return this.articlesRepository.find();
+        //console.log('Order by:', order_by);
+        if (order_by === 'Most Recent') {
+            const articles = await this.articlesRepository.find({
+                order: {
+                    created_at: 'DESC',
+                },
+            });
+            console.log('Ordered articles:', articles);
+            return articles;
+        }
+        else if (order_by === 'Most Popular') {
+            const articles = await this.articlesRepository.find({
+                order: {
+                    views: 'DESC',
+                },
+            });
+            console.log('Ordered articles:', articles);
+            return articles;
+        }
+    
+        const articles = await this.articlesRepository.find();
+        console.log('Unordered articles:', articles);
+        return articles;
     }
 
-    async getArticlesByCharacteristic(characteristic: string, optionSelected?: string) {
+    async getArticlesByCharacteristic(characteristic: string, optionSelected?: string, order_by?: string) {
         try {    
             const characteristicEntity = await this.characteristicRepository.findOne({ where: { name: characteristic } });
             if (!characteristicEntity) {
@@ -191,6 +212,24 @@ export class ObjectsService {
             return []; // Return an empty array if no articles are found
             }
     
+            if (order_by === 'Most Recent') {
+                const articles = await this.articlesRepository.find({
+                    where: { ID: In(articlesIDs) },
+                    order: {
+                        created_at: 'DESC',
+                    },
+                });
+                return articles;
+            } else if (order_by === 'Most Popular') {
+                const articles = await this.articlesRepository.find({
+                    where: { ID: In(articlesIDs) },
+                    order: {
+                        views: 'DESC',
+                    },
+                });
+                return articles;
+            }
+
             // Retrieve articles by IDs
             return this.articlesRepository.find({
             where: { ID: In(articlesIDs) },
@@ -205,7 +244,7 @@ export class ObjectsService {
         }
     }
 
-    async getCalculators() {
+    async getCalculators(order_by?: string) {
         if (await this.calculatorsRepository.count() === 0) {
             return {
                 status: HttpStatus.NOT_FOUND,
@@ -213,11 +252,25 @@ export class ObjectsService {
             };
         }
 
+        if (order_by === 'Most Recent') {
+            return this.calculatorsRepository.find({
+                order: {
+                    created_at: 'DESC',
+                },
+            });
+        } else if (order_by === 'Most Popular') {
+            return this.calculatorsRepository.find({
+                order: {
+                    views: 'DESC',
+                },
+            });
+        }
+
         return this.calculatorsRepository.find();
     }
 
 
-    async getCalculatorsByCharacteristic(characteristic: string, optionSelected?: string) {
+    async getCalculatorsByCharacteristic(characteristic: string, optionSelected?: string, order_by?: string) {
         try {
             const characteristicEntity = await this.characteristicRepository.findOne({ where: { name: characteristic } });
             if (!characteristicEntity) {
@@ -263,6 +316,22 @@ export class ObjectsService {
             console.log('No calculators found for the given characteristic.');
             return []; // Return an empty array if no calculators are found
             }
+
+            if (order_by === 'Most Recent') {
+                return this.calculatorsRepository.find({
+                    where: { ID: In(calculatorsIDs) },
+                    order: {
+                        created_at: 'DESC',
+                    },
+                });
+            } else if (order_by === 'Most Popular') {
+                return this.calculatorsRepository.find({
+                    where: { ID: In(calculatorsIDs) },
+                    order: {
+                        views: 'DESC',
+                    },
+                });
+            }
     
             // Retrieve calculators by IDs
             return this.calculatorsRepository.find({
@@ -278,7 +347,7 @@ export class ObjectsService {
         }
     }
 
-    async getCarousels() {
+    async getCarousels(order_by?: string) {
         if (await this.carouselsRepository.count() === 0) {
             return {
                 status: HttpStatus.NOT_FOUND,
@@ -286,10 +355,24 @@ export class ObjectsService {
             };
         }
 
+        if (order_by === 'Most Recent') {
+            return this.carouselsRepository.find({
+                order: {
+                    created_at: 'DESC',
+                },
+            });
+        } else if (order_by === 'Most Popular') {
+            return this.carouselsRepository.find({
+                order: {
+                    views: 'DESC',
+                },
+            });
+        }
+
         return this.carouselsRepository.find();
     }
 
-    async getCarouselsByCharacteristic(characteristic: string, optionSelected?: string) {
+    async getCarouselsByCharacteristic(characteristic: string, optionSelected?: string, order_by?: string) {
         try {
             const characteristicEntity = await this.characteristicRepository.findOne({ where: { name: characteristic } });
             if (!characteristicEntity) {
@@ -336,6 +419,22 @@ export class ObjectsService {
             return []; // Return an empty array if no carousels are found
             }
     
+            if (order_by === 'Most Recent') {
+                return this.carouselsRepository.find({
+                    where: { ID: In(carouselIDs) },
+                    order: {
+                        created_at: 'DESC',
+                    },
+                });
+            } else if (order_by === 'Most Popular') {
+                return this.carouselsRepository.find({
+                    where: { ID: In(carouselIDs) },
+                    order: {
+                        views: 'DESC',
+                    },
+                });
+            }
+
             // Retrieve carousels by IDs
             return this.carouselsRepository.find({
             where: { ID: In(carouselIDs) },

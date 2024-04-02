@@ -30,12 +30,14 @@ export class ObjectsController {
     @ApiParam({ name: 'objectType', description: 'Type of object' })
     @ApiQuery({ name: 'characteristic', required: false, description: 'Characteristic' })
     @ApiQuery({ name: 'option_selected', required: false, description: 'Selected option' })
+    @ApiQuery({ name: 'order_by', required: false, description: 'Order by' })
     async getObjects(
         @Param('objectType') objectType: string,
         @Query('characteristic') characteristic?: string,
         @Query('option_selected') optionSelected?: string,
+        @Query('order_by') order_by?: string,
     ) {
-        return await this.objectsService.getObjects(objectType, characteristic, optionSelected);
+        return await this.objectsService.getObjects(objectType, characteristic, optionSelected, order_by);
     }
     
     @Get(':objectType/:id')
