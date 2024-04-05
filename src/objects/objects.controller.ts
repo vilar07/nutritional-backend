@@ -24,6 +24,16 @@ export class ObjectsController {
     ) {
         return await this.objectsService.getCharacteristics(objectType);
     }
+
+    //Get all recommended objects by characteristics
+    @Get('recommended')
+    async getRecommendedObjects(
+        @Query('recommendedCharacteristics') recommendedCharacteristics: string, // Accepting query parameter
+        @Query('objectType') objectType?: string
+    ) {
+        const parsedCharacteristics = JSON.parse(recommendedCharacteristics);
+        return await this.objectsService.getObjectsByRecommendedCharacteristics(parsedCharacteristics, objectType);
+    }
     
     @Get(':objectType')
     @ApiOperation({ summary: 'Get all Objects by object type and optionally by characteristic and selected option' })
@@ -186,6 +196,7 @@ export class ObjectsController {
     ) {
         return await this.objectsService.incrementViews(objectType, id);
     }
+    
     
     
     

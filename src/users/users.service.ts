@@ -329,7 +329,7 @@ export class UsersService {
         return cosineSimilarity;
     }
 
-    async calculateUserSimilarities(userEmail: string): Promise<any> {
+    async getRecommendations(userEmail: string): Promise<any> {
         try {
             // Encontre o usuário com o email fornecido
             const user = await this.userRepository.findOne({ where: { email: userEmail } });
@@ -391,9 +391,16 @@ export class UsersService {
             console.log(`Two most similar users to ${userEmail}:`, mostSimilarUsers);
             console.log(`Recommended characteristics for user ${userEmail}:`, recommendedCharacteristics);
     
+            const uniqueCharacteristics: Set<string> = new Set();
+            recommendedCharacteristics.forEach(rc => {
+                Object.keys(rc.characteristics).forEach(label => {
+                    uniqueCharacteristics.add(label);
+                });
+            });
+            const uniqueCharacteristicsArray = Array.from(uniqueCharacteristics);
+            console.log('Unique characteristics:', uniqueCharacteristicsArray);
             // Chame o método getObjectsByRecommendedCharacteristics com as características recomendadas
-            const objects = await this.objectsService.getObjectsByRecommendedCharacteristics(recommendedCharacteristics);
-            console.log('Objects obtained by recommended characteristics:', objects);
+            return uniqueCharacteristicsArray;
         } catch (error) {
             console.error('Error calculating user similarities:', error);
         }

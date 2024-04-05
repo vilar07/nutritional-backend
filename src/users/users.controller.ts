@@ -18,13 +18,13 @@ export class UsersController {
         return await this.usersService.generateUserCharacteristicMatrix();
     }
 
-    //Calculate Similarities between one user and the others
-    @Get('/similarity/:email')
-    async calculateSimilarities(
-        @Param('email') email: string
-    ) {
-        return await this.usersService.calculateUserSimilarities(email);
-    }
+    // //Calculate Similarities between one user and the others
+    // @Get('/similarity/:email')
+    // async calculateSimilarities(
+    //     @Param('email') email: string
+    // ) {
+    //     return await this.usersService.calculateUserSimilarities(email);
+    // }
 
     //Get all users
     @Get()
@@ -87,6 +87,15 @@ export class UsersController {
         @Body() associations: AssociateCharacteristicsDto 
     ){
         return await this.usersService.associateCharacteristics(email, associations);
+    }
+
+    //Calculate the similarity between the users, see the 2 most similar users and return the recommendaded characteristics
+    @Get('/recommendations/:email')
+    @ApiOperation({ summary: 'Get Recommendations for an User' })
+    async getRecommendations(
+        @Param('email') email: string
+    ) {
+        return await this.usersService.getRecommendations(email);
     }
 
     

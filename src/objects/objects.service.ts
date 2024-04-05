@@ -34,21 +34,12 @@ export class ObjectsService {
 
     ) {}
 
-    async getObjectsByRecommendedCharacteristics(recommendedCharacteristics: { user: string; characteristics: { [label: string]: number } }[], objectType?: string) {
+    async getObjectsByRecommendedCharacteristics(recommendedCharacteristics: string[], objectType?: string) {
         try {
-            const uniqueCharacteristics: Set<string> = new Set();
-            recommendedCharacteristics.forEach(rc => {
-                Object.keys(rc.characteristics).forEach(label => {
-                    uniqueCharacteristics.add(label);
-                });
-            });
-    
-            const uniqueCharacteristicsArray = Array.from(uniqueCharacteristics);
-            console.log('Unique characteristics:', uniqueCharacteristicsArray);
             const objects: { [key: string]: any[] } = { articles: [], calculators: [], carousels: [] };
             const addedObjectIDs: { [key: string]: Set<string> } = { articles: new Set(), calculators: new Set(), carousels: new Set() };
     
-            for (const characteristic of uniqueCharacteristicsArray) {
+            for (const characteristic of recommendedCharacteristics) {
                 const [category, option] = characteristic.split(':').map(str => str.trim());
                 let result;
     
