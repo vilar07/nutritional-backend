@@ -34,11 +34,23 @@ export class ObjectsService {
 
     ) {}
 
-    async getObjectsByRecommendedCharacteristics(recommendedCharacteristics: string[], objectType?: string) {
+    async getObjectsByRecommendedCharacteristics(recommendedCharacteristics: string[], objectType?: string, order_by?: string) {
         try {
-            const objects: { [key: string]: any[] } = { articles: [], calculators: [], carousels: [] };
-            const addedObjectIDs: { [key: string]: Set<string> } = { articles: new Set(), calculators: new Set(), carousels: new Set() };
+            
     
+            let objects: { [key: string]: any[] } = {};
+            let addedObjectIDs: { [key: string]: Set<string> } = {};
+
+            if (objectType) {
+                // If objectType is provided, set objects and addedObjectIDs only for that type
+                objects[objectType] = [];
+                addedObjectIDs[objectType] = new Set();
+            } else {
+                // If objectType is not provided, set objects and addedObjectIDs for all types
+                objects = { articles: [], calculators: [], carousels: [] };
+                addedObjectIDs = { articles: new Set(), calculators: new Set(), carousels: new Set() };
+            }
+
             for (const characteristic of recommendedCharacteristics) {
                 const [category, option] = characteristic.split(':').map(str => str.trim());
                 let result;
@@ -53,6 +65,26 @@ export class ObjectsService {
                                 objects[objectType].push({ ...obj }); // Creating a shallow copy of the object
                                 addedObjectIDs[objectType].add(obj.ID);
                             }
+                        }
+                    }
+                    // Apply ordering if order_by is provided
+                    if (order_by) {
+                        switch (order_by) {
+                            case 'Most Recent':
+                                // Order by most recent logic
+                                console.log(objects[objectType])
+                                objects[objectType].sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime());
+                                console.log("Ordered", objects[objectType])
+                                break;
+                            case 'Most Popular':
+                                // Order by most popular logic
+                                objects[objectType].sort((a, b) => b.views - a.views);
+                                break;
+                            // Add more cases for other ordering options if needed
+                            default:
+                                // Handle invalid order_by value
+                                throw new BadRequestException('Invalid order_by value');
+                                break;
                         }
                     }
                 } else {
@@ -95,32 +127,45 @@ export class ObjectsService {
         }
     }
 
-    async getObjects(objectType: string, characteristic?: string, optionSelected?: string, order_by?: string) {
+    async getObjects(objectType?: string, characteristic?: string, optionSelected?: string, order_by?: string, recommendedCharacteristics?: string[]) {
         try {
-            switch(objectType) {
-                case 'articles':
-                    if (characteristic && optionSelected) {
-                        return await this.getArticlesByCharacteristic(characteristic, optionSelected, order_by);
-                    } else if (characteristic) {
-                        return await this.getArticlesByCharacteristic(characteristic, order_by);
-                    }
-                    return await this.getArticles(order_by);
-                case 'calculators':
-                    if (characteristic && optionSelected) {
-                        return await this.getCalculatorsByCharacteristic(characteristic, optionSelected, order_by);
-                    } else if (characteristic) {
-                        return await this.getCalculatorsByCharacteristic(characteristic, order_by);
-                    }
-                    return await this.getCalculators(order_by);
-                case 'carousels':
-                    if (characteristic && optionSelected) {
-                        return await this.getCarouselsByCharacteristic(characteristic, optionSelected, order_by);
-                    } else if (characteristic) {
-                        return await this.getCarouselsByCharacteristic(characteristic, order_by);
-                    }
-                    return await this.getCarousels(order_by);
-                default:
-                    throw new BadRequestException('Invalid object type');
+            if (!recommendedCharacteristics || recommendedCharacteristics.length === 0) {
+                // If no recommendedCharacteristics provided, objectType must be present
+                if (!objectType) {
+                    throw new BadRequestException('Object type must be provided');
+                }
+            }
+    
+            if (recommendedCharacteristics && recommendedCharacteristics.length > 0) {
+                // If recommendedCharacteristics are provided, use them to filter objects
+                return await this.getObjectsByRecommendedCharacteristics(recommendedCharacteristics, objectType);
+            } else {
+                // If no recommendedCharacteristics provided, proceed with regular fetching
+                switch(objectType) {
+                    case 'articles':
+                        if (characteristic && optionSelected) {
+                            return await this.getArticlesByCharacteristic(characteristic, optionSelected, order_by);
+                        } else if (characteristic) {
+                            return await this.getArticlesByCharacteristic(characteristic, order_by);
+                        }
+                        return await this.getArticles(order_by);
+                    case 'calculators':
+                        if (characteristic && optionSelected) {
+                            return await this.getCalculatorsByCharacteristic(characteristic, optionSelected, order_by);
+                        } else if (characteristic) {
+                            return await this.getCalculatorsByCharacteristic(characteristic, order_by);
+                        }
+                        return await this.getCalculators(order_by);
+                    case 'carousels':
+                        if (characteristic && optionSelected) {
+                            return await this.getCarouselsByCharacteristic(characteristic, optionSelected, order_by);
+                        } else if (characteristic) {
+                            return await this.getCarouselsByCharacteristic(characteristic, order_by);
+                        }
+                        return await this.getCarousels(order_by);
+                    default:
+                        throw new BadRequestException('Invalid object type');
+                }
             }
         } catch (error) {
             if (error instanceof NotFoundException) {

@@ -25,29 +25,59 @@ export class ObjectsController {
         return await this.objectsService.getCharacteristics(objectType);
     }
 
-    //Get all recommended objects by characteristics
-    @Get('recommended')
-    async getRecommendedObjects(
-        @Query('recommendedCharacteristics') recommendedCharacteristics: string, // Accepting query parameter
-        @Query('objectType') objectType?: string
-    ) {
-        const parsedCharacteristics = JSON.parse(recommendedCharacteristics);
-        return await this.objectsService.getObjectsByRecommendedCharacteristics(parsedCharacteristics, objectType);
-    }
+    // //Get all recommended objects by characteristics
+    // @Get('recommended')
+    // async getRecommendedObjects(
+    //     @Query('recommendedCharacteristics') recommendedCharacteristics: string, // Accepting query parameter
+    //     @Query('objectType') objectType?: string
+    // ) {
+    //     const parsedCharacteristics = JSON.parse(recommendedCharacteristics);
+    //     return await this.objectsService.getObjectsByRecommendedCharacteristics(parsedCharacteristics, objectType);
+    // }
     
-    @Get(':objectType')
-    @ApiOperation({ summary: 'Get all Objects by object type and optionally by characteristic and selected option' })
-    @ApiParam({ name: 'objectType', description: 'Type of object' })
+    // @Get(':objectType')
+    // @ApiOperation({ summary: 'Get all Objects by object type and optionally by characteristic and selected option' })
+    // @ApiParam({ name: 'objectType', description: 'Type of object' })
+    // @ApiQuery({ name: 'characteristic', required: false, description: 'Characteristic' })
+    // @ApiQuery({ name: 'option_selected', required: false, description: 'Selected option' })
+    // @ApiQuery({ name: 'order_by', required: false, description: 'Order by' })
+    // async getObjects(
+    //     @Param('objectType') objectType: string,
+    //     @Query('characteristic') characteristic?: string,
+    //     @Query('option_selected') optionSelected?: string,
+    //     @Query('order_by') order_by?: string,
+    // ) {
+    //     return await this.objectsService.getObjects(objectType, characteristic, optionSelected, order_by);
+    // }
+
+    @Get(':objectType?') // Making objectType optional by adding a question mark after the parameter
+    @ApiOperation({ summary: 'Get all Objects by object type and optionally by characteristic and selected option or by recommended characteristics' })
+    @ApiParam({ name: 'objectType', description: 'Type of object', required: false }) // Indicating that objectType is optional in the parameter description
     @ApiQuery({ name: 'characteristic', required: false, description: 'Characteristic' })
     @ApiQuery({ name: 'option_selected', required: false, description: 'Selected option' })
     @ApiQuery({ name: 'order_by', required: false, description: 'Order by' })
+    @ApiQuery({ name: 'recommendedCharacteristics', required: false, description: 'Recommended Characteristics' })
     async getObjects(
-        @Param('objectType') objectType: string,
+        @Param('objectType') objectType?: string, // Making objectType optional
         @Query('characteristic') characteristic?: string,
         @Query('option_selected') optionSelected?: string,
         @Query('order_by') order_by?: string,
+        @Query('recommendedCharacteristics') recommendedCharacteristics?: string
     ) {
-        return await this.objectsService.getObjects(objectType, characteristic, optionSelected, order_by);
+        try {
+            if (recommendedCharacteristics && recommendedCharacteristics.length > 0) {
+                const parsedCharacteristics = JSON.parse(recommendedCharacteristics);
+                return await this.objectsService.getObjectsByRecommendedCharacteristics(parsedCharacteristics, objectType, order_by);
+            } else {
+                // If no recommendedCharacteristics provided, proceed with regular fetching
+                if (!objectType) {
+                    throw new BadRequestException('Object type must be provided');
+                }
+                return await this.objectsService.getObjects(objectType, characteristic, optionSelected, order_by);
+            }
+        } catch (error) {
+            throw error;
+        }
     }
     
     @Get(':objectType/:id')
