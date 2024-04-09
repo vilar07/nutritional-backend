@@ -396,17 +396,17 @@ export class ObjectsService {
             };
         }
 
-        let carousels;
+        let carousels: any;
 
         if (order_by === 'Most Recent') {
-            return this.carouselsRepository.find({
+            carousels = await this.carouselsRepository.find({
                 relations: ['items'],
                 order: {
                     created_at: 'DESC',
                 },
             });
         } else if (order_by === 'Most Popular') {
-            return this.carouselsRepository.find({
+            carousels = await this.carouselsRepository.find({
                 relations: ['items'],
                 order: {
                     views: 'DESC',
@@ -416,7 +416,7 @@ export class ObjectsService {
             carousels = await this.carouselsRepository.find({relations: ['items']});
         }
         // Reverse the order of items in each carousel
-        carousels.forEach(carousel => {
+        carousels.forEach((carousel: { items: any[]; }) => {
             carousel.items.reverse();
         });
 
@@ -471,8 +471,10 @@ export class ObjectsService {
             return []; // Return an empty array if no carousels are found
             }
     
+            let carousels: any;
             if (order_by === 'Most Recent') {
-                return this.carouselsRepository.find({
+                console.log("ENTROU");
+                carousels = await this.carouselsRepository.find({
                     where: { ID: In(carouselIDs) },
                     relations: ['items'],
                     order: {
@@ -480,20 +482,25 @@ export class ObjectsService {
                     },
                 });
             } else if (order_by === 'Most Popular') {
-                return this.carouselsRepository.find({
+                carousels = await this.carouselsRepository.find({
                     where: { ID: In(carouselIDs) },
                     relations: ['items'],
                     order: {
                         views: 'DESC',
                     },
                 });
+            } else {
+                carousels = await this.carouselsRepository.find({
+                    where: { ID: In(carouselIDs) },
+                    relations: ['items'],
+                    });
             }
-
-            // Retrieve carousels by IDs
-            return this.carouselsRepository.find({
-            where: { ID: In(carouselIDs) },
-            relations: ['items'],
+            // Reverse the order of items in each carousel
+            carousels.forEach((carousel: { items: any[]; }) => {
+                carousel.items.reverse();
             });
+    
+            return carousels;
         } catch (error) {
             if (error instanceof HttpException) {
                 throw error; // Rethrow the HttpException without logging
@@ -1074,32 +1081,33 @@ export class ObjectsService {
                     status: HttpStatus.OK,
                     message: 'Carousel item deleted',
                 };
+            } else {
+                const carousel = await this.carouselsRepository.findOne(
+                    {
+                        where: {ID: id},
+                        relations: ['objectCharacteristicsAssociations'],
+                    },
+                );
+                if (!carousel) {
+                    throw new NotFoundException('carousel not found');
+                }
+
+                // Delete associations
+                await this.objectCharacteristicsAssociationRepository.remove(carousel.objectCharacteristicsAssociations);
+
+                const carouselToDelete = await this.carouselsRepository.findOne(
+                    {where: {ID: id}}
+                );
+                if (!carouselToDelete) {
+                    throw new NotFoundException('Carousel not found');
+                }
+                await this.carouselsRepository.delete(carouselToDelete);
+        
+                return {
+                    status: HttpStatus.OK,
+                    message: 'Carousel deleted',
+                };
             }
-            // const carousel = await this.carouselsRepository.findOne(
-            //     {
-            //         where: {ID: id},
-            //         relations: ['objectCharacteristicsAssociations'],
-            //     },
-            // );
-            // if (!carousel) {
-            //     throw new NotFoundException('carousel not found');
-            // }
-
-            // // Delete associations
-            // await this.objectCharacteristicsAssociationRepository.remove(carousel.objectCharacteristicsAssociations);
-
-            // const carouselToDelete = await this.carouselsRepository.findOne(
-            //     {where: {ID: id}}
-            // );
-            // if (!carouselToDelete) {
-            //     throw new NotFoundException('Carousel not found');
-            // }
-            // await this.carouselsRepository.delete(carouselToDelete);
-    
-            // return {
-            //     status: HttpStatus.OK,
-            //     message: 'Carousel deleted',
-            // };
         } catch (error) {
             if (error instanceof NotFoundException) {
                 throw new NotFoundException('Error deleting carousel');
