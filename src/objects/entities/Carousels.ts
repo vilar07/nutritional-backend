@@ -1,32 +1,27 @@
-import { Entity, PrimaryGeneratedColumn, Column, ManyToMany, JoinTable} from "typeorm";
-import { Characteristics } from "../../characteristics/entities/Characteristics";
+import { Entity, PrimaryGeneratedColumn, Column, ManyToMany, OneToMany, JoinTable} from "typeorm";
 import { ActivateWhen } from "../entities/ActivateWhen";
 import { ActivateUntil } from "../entities/ActivateUntil";
 import { ObjectCharacteristicsAssociation } from "./ObjectCharacteristicsAssociation";
+import { CarouselItem } from "./CarouselItem";
 
 @Entity('carousels')
 export class Carousels{
 
-    @PrimaryGeneratedColumn({type: 'bigint'})
+    @PrimaryGeneratedColumn({ type: 'bigint' })
     ID: number;
 
-    @Column({ type: 'varchar' })
+    @Column({ type: 'varchar', length: 255 })
     title: string;
-
-    @Column({ type: 'varchar' })
-    subtitle: string;
-
-    @Column({ type: 'text' })
-    description: string;
-
-    @Column({ type: 'text'})
-    images: string;
 
     @Column({ type: 'int', default: 0 }) // Adicionando o campo de número de visualizações
     views: number;
 
     @Column({ type: 'timestamp', default: () => 'CURRENT_TIMESTAMP' })
     created_at: Date;
+
+    @OneToMany(() => CarouselItem, item => item.carousel)
+    @JoinTable()
+    items: CarouselItem[];
 
     @ManyToMany(() => ActivateWhen, activateWhen => activateWhen.carousels)
     activate_whens: ActivateWhen[];

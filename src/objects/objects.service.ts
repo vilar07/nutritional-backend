@@ -14,6 +14,7 @@ import { NotFoundException, BadRequestException } from '@nestjs/common';
 import { Calculators } from './entities/Calculators';
 import { Carousels } from './entities/Carousels';
 import { get } from 'http';
+import { CarouselItem } from './entities/CarouselItem';
 
 
 
@@ -31,6 +32,8 @@ export class ObjectsService {
         private readonly characteristicRepository: Repository<Characteristics>,
         @InjectRepository(Carousels)
         private readonly carouselsRepository: Repository<Carousels>,
+        @InjectRepository(CarouselItem)
+        private readonly carouselItemRepository: Repository<CarouselItem>,
 
     ) {}
 
@@ -40,6 +43,8 @@ export class ObjectsService {
     
             let objects: { [key: string]: any[] } = {};
             let addedObjectIDs: { [key: string]: Set<string> } = {};
+
+            
 
             if (objectType) {
                 // If objectType is provided, set objects and addedObjectIDs only for that type
@@ -391,21 +396,32 @@ export class ObjectsService {
             };
         }
 
+        let carousels;
+
         if (order_by === 'Most Recent') {
             return this.carouselsRepository.find({
+                relations: ['items'],
                 order: {
                     created_at: 'DESC',
                 },
             });
         } else if (order_by === 'Most Popular') {
             return this.carouselsRepository.find({
+                relations: ['items'],
                 order: {
                     views: 'DESC',
                 },
             });
+        } else {
+            carousels = await this.carouselsRepository.find({relations: ['items']});
         }
+        // Reverse the order of items in each carousel
+        carousels.forEach(carousel => {
+            carousel.items.reverse();
+        });
 
-        return this.carouselsRepository.find();
+        return carousels;
+
     }
 
     async getCarouselsByCharacteristic(characteristic: string, optionSelected?: string, order_by?: string) {
@@ -458,6 +474,7 @@ export class ObjectsService {
             if (order_by === 'Most Recent') {
                 return this.carouselsRepository.find({
                     where: { ID: In(carouselIDs) },
+                    relations: ['items'],
                     order: {
                         created_at: 'DESC',
                     },
@@ -465,6 +482,7 @@ export class ObjectsService {
             } else if (order_by === 'Most Popular') {
                 return this.carouselsRepository.find({
                     where: { ID: In(carouselIDs) },
+                    relations: ['items'],
                     order: {
                         views: 'DESC',
                     },
@@ -474,6 +492,7 @@ export class ObjectsService {
             // Retrieve carousels by IDs
             return this.carouselsRepository.find({
             where: { ID: In(carouselIDs) },
+            relations: ['items'],
             });
         } catch (error) {
             if (error instanceof HttpException) {
@@ -515,7 +534,7 @@ export class ObjectsService {
             case 'carousel':
                 const carousel = await this.carouselsRepository.findOne({
                     where: {ID: params.id},
-                    relations: ['objectCharacteristicsAssociations', 'objectCharacteristicsAssociations.characteristics'],
+                    relations: ['objectCharacteristicsAssociations', 'objectCharacteristicsAssociations.characteristics', 'items'],
                 })
                 if (!carousel) {
                     return {
@@ -541,7 +560,7 @@ export class ObjectsService {
                 case 'calculator':
                     return await this.createCalculator(objectData, images[0]); // Assuming only one image is allowed for calculator
                 case 'carousel':
-                    return await this.createCarousel(objectData, images); // Handle creating carousel with multiple images
+                    return await this.createCarousel(objectData, images[0]); // Handle creating carousel with multiple items
                 // Add more cases for other object types as needed
                 default:
                     throw new BadRequestException('Invalid object type');
@@ -658,58 +677,106 @@ export class ObjectsService {
         }
     }
 
-    async createCarousel(carouselData: any, images: Array<Express.Multer.File>): Promise<any> {
+    async createCarousel( carouselData: any, image: Express.Multer.File): Promise<any> {
         try {
+
+            console.log('Carousel Data:', carouselData);
+            //If carousel with that title and item with the item title exists, throw an error
             const existingCarousel = await this.carouselsRepository.findOne({
                 where: {title: carouselData.title},
             });
+            let existingItem: any;
             if (existingCarousel) {
-                const errorMessage = 'Carousel with that title already exists.';
+                existingItem = await this.carouselItemRepository.findOne({
+                    where: { 
+                        title: carouselData.itemTitle,
+                        carousel: { title: existingCarousel.title } 
+                    },
+                });
+            }
+            console.log('Existing Carousel:', existingCarousel);
+            console.log('Existing Item:', existingItem);
+            
+
+            if (existingCarousel && existingItem) {
+                const errorMessage = 'Carousel with that title and item with that title already exists.';
                 throw new HttpException(errorMessage, HttpStatus.CONFLICT);
-            }
-            // Save the image buffer to a temporary file
-            const tempFilePaths = [];
-            for (let i = 0; i < images.length; i++) {
-                const tempFilePath = `./file${i}.png`; // Provide the path to a temporary file
-                fs.writeFileSync(tempFilePath, images[i].buffer);
-                tempFilePaths.push(tempFilePath);
-            }
-    
-            // Upload the temporary files to Cloudinary
-            const results = [];
-            for (let i = 0; i < images.length; i++) {
-                const result = await cloudinary.uploader.upload(tempFilePaths[i], {
+            } else if (existingCarousel) {
+
+                // Save the image buffer to a temporary file
+                const tempFilePath = './file.png'; // Provide the path to a temporary file
+                fs.writeFileSync(tempFilePath, image.buffer);
+        
+                // Upload the temporary file to Cloudinary
+                const result = await cloudinary.uploader.upload(tempFilePath, {
                     folder: 'carousels', // Optional: specify a folder in Cloudinary
                 });
-                results.push(result.secure_url);
-            }
-    
-            // Create carousel entity with Cloudinary image URLs
-            const carousel = this.carouselsRepository.create({
-                title: carouselData.title,
-                subtitle: carouselData.subtitle,
-                description: carouselData.description,
-                images: JSON.stringify(results), // Serialize the array of image URLs to a JSON string
-            });
-    
-            // Save the carousel to the database
-            await this.carouselsRepository.save(carousel);
-    
-            // Delete the temporary files
-            for (let i = 0; i < images.length; i++) {
-                fs.unlinkSync(tempFilePaths[i]);
-            }
-    
-            return {
-                status: HttpStatus.CREATED,
-                message: 'Carousel created',
-            };
-        } catch (error) {
-            if (error instanceof NotFoundException) {
-                throw new NotFoundException('Error creating carousel');
+        
+                // Create carousel item entity
+                const item = this.carouselItemRepository.create({
+                    title: carouselData.itemTitle,
+                    subtitle: carouselData.itemSubtitle,
+                    description: carouselData.itemDescription,
+                    image: result.secure_url,
+                    link: carouselData.itemLink,
+                    buttonText: carouselData.itemButtonText,
+                    carousel: existingCarousel
+                });
+
+                console.log('item:', item);
+
+                // Save the carousel item to the database
+                await this.carouselItemRepository.save(item);
+
+                return {
+                    status: HttpStatus.CREATED,
+                    message: 'Carousel item created',
+                };
             } else {
-                throw error;
+                // Create carousel entity
+                const carousel = this.carouselsRepository.create({
+                    title: carouselData.title,
+                });
+
+                // Save the new carousel to the database
+                await this.carouselsRepository.save(carousel);
+
+                console.log('Carousel:', carousel);
+                console.log('image:', image);
+
+                // Save the image buffer to a temporary file
+                const tempFilePath = './file.png'; // Provide the path to a temporary file
+                fs.writeFileSync(tempFilePath, image.buffer);
+        
+                // Upload the temporary file to Cloudinary
+                const result = await cloudinary.uploader.upload(tempFilePath, {
+                    folder: 'carousels', // Optional: specify a folder in Cloudinary
+                });
+
+                // Create carousel item entity
+                const item = this.carouselItemRepository.create({
+                    title: carouselData.itemTitle,
+                    subtitle: carouselData.itemSubtitle,
+                    description: carouselData.itemDescription,
+                    image: result.secure_url,
+                    link: carouselData.itemLink,
+                    buttonText: carouselData.itemButtonText,
+                    carousel: carousel
+                });
+
+                console.log('item:', item);
+
+                // Save the carousel item to the database
+                await this.carouselItemRepository.save(item);
+
+                return {
+                    status: HttpStatus.CREATED,
+                    message: 'Carousel item created',
+                };
             }
+
+        } catch (error) {
+            throw error;
         }
     }
 
@@ -721,7 +788,7 @@ export class ObjectsService {
                 case 'calculator':
                     return await this.updateCalculator(id, objectData, images[0]);
                 case 'carousel':
-                    return await this.updateCarousel(id, objectData, images);
+                    return await this.updateCarousel(id, objectData, images[0]);
                 default:
                     throw new BadRequestException('Invalid object type');
             }
@@ -848,71 +915,56 @@ export class ObjectsService {
         }
     }
 
-    async updateCarousel(id: number, carouselData: any, images: Array<Express.Multer.File>): Promise<any> {
+    async updateCarousel(carouselId: number, carouselData: any, image?: Express.Multer.File): Promise<any> {
         try {
-            const carousel = await this.carouselsRepository.findOne(
-                {where: {ID: id}}
+            // Find the existing carousel in the carousel repository
+            const existingCarousel = await this.carouselsRepository.findOne(
+                {where: {ID: carouselId}},
             );
-            if (!carousel) {
-                throw new NotFoundException('Carousel not found');
+            // Find the existing carousel item in the carousel item repository
+            const existingItem = await this.carouselItemRepository.findOne(
+                {where: {ID: carouselData.itemID}, relations: ['carousel']},
+            );
+    
+            if (!existingItem && image) {
+                 this.createCarousel(carouselData, image);
             }
     
-            // If images are provided, update the images
-            if (images) {
-                // Save the new image buffers to temporary files
-                const tempFilePaths = [];
-                for (let i = 0; i < images.length; i++) {
-                    const tempFilePath = `./file${i}.png`; // Provide the path to a temporary file
-                    fs.writeFileSync(tempFilePath, images[i].buffer);
-                    tempFilePaths.push(tempFilePath);
+            
+    
+            if (existingItem) {
+                // Update the existing carousel item with the new data
+                if (carouselData.itemTitle) {
+                    existingItem.title = carouselData.itemTitle;
+                }
+                if (carouselData.itemSubtitle) {
+                    existingItem.subtitle = carouselData.itemSubtitle;
+                }
+                if (carouselData.itemDescription) {
+                    existingItem.description = carouselData.itemDescription;
+                }
+                if (carouselData.itemLink) {
+                    existingItem.link = carouselData.itemLink;
+                }
+                if (carouselData.itemButtonText) {
+                    existingItem.buttonText = carouselData.itemButtonText;
                 }
     
-                // Upload the temporary files to Cloudinary
-                const results = [];
-                for (let i = 0; i < images.length; i++) {
-                    const result = await cloudinary.uploader.upload(tempFilePaths[i], {
-                        folder: 'carousels', // Optional: specify a folder in Cloudinary
-                    });
-                    results.push(result.secure_url);
-                }
-    
-                // Update carousel with new Cloudinary image URLs
-                carousel.images = JSON.stringify(results); // Serialize the array of image URLs to a JSON string
-    
-                // Delete the temporary files
-                for (let i = 0; i < images.length; i++) {
-                    fs.unlinkSync(tempFilePaths[i]);
-                }
+                console.log('Existing Item:', existingItem);
+                // Save the updated carousel item to the database
+                await this.carouselItemRepository.save(existingItem);
             }
-    
-            // Update other fields if provided
-            if (carouselData.title) {
-                carousel.title = carouselData.title;
-            }
-            if (carouselData.subtitle) {
-                carousel.subtitle = carouselData.subtitle;
-            }
-            if (carouselData.description) {
-                carousel.description = carouselData.description;
-            }
-    
-            // Save the updated carousel to the database
-            await this.carouselsRepository.save(carousel);
     
             return {
                 status: HttpStatus.OK,
-                message: 'Carousel updated',
+                message: 'Carousel item updated',
             };
         } catch (error) {
-            if (error instanceof NotFoundException) {
-                throw new NotFoundException('Error updating carousel');
-            } else {
-                throw error;
-            }
+            throw error;
         }
     }
 
-    async deleteObject(objectType: string, id: number): Promise<any> {
+    async deleteObject(objectType: string, id: number, carouselItemID?: number): Promise<any> {
         try {
             switch(objectType) {
                 case 'article':
@@ -920,7 +972,7 @@ export class ObjectsService {
                 case 'calculator':
                     return await this.deleteCalculator(id);
                 case 'carousel':
-                    return await this.deleteCarousel(id);
+                    return await this.deleteCarousel(id, carouselItemID);
                 default:
                     throw new BadRequestException('Invalid object type');
             }
@@ -1005,33 +1057,49 @@ export class ObjectsService {
         }
     }
 
-    async deleteCarousel(id: number): Promise<any> {
+    async deleteCarousel(id: number, carouselItemID: number): Promise<any> {
         try {
-            const carousel = await this.carouselsRepository.findOne(
-                {
-                    where: {ID: id},
-                    relations: ['objectCharacteristicsAssociations'],
-                },
-            );
-            if (!carousel) {
-                throw new NotFoundException('carousel not found');
+            // if carouselItemID is provided, delete the carousel item
+            if (carouselItemID) {
+                console.log('Carousel Item ID:', carouselItemID);
+                const carouselItem = await this.carouselItemRepository.findOne(
+                    {where: {ID: carouselItemID}}
+                );
+                console.log('Carousel Item:', carouselItem);
+                if (!carouselItem) {
+                    throw new NotFoundException('Carousel item not found');
+                }
+                await this.carouselItemRepository.delete(carouselItemID);
+                return {
+                    status: HttpStatus.OK,
+                    message: 'Carousel item deleted',
+                };
             }
+            // const carousel = await this.carouselsRepository.findOne(
+            //     {
+            //         where: {ID: id},
+            //         relations: ['objectCharacteristicsAssociations'],
+            //     },
+            // );
+            // if (!carousel) {
+            //     throw new NotFoundException('carousel not found');
+            // }
 
-            // Delete associations
-            await this.objectCharacteristicsAssociationRepository.remove(carousel.objectCharacteristicsAssociations);
+            // // Delete associations
+            // await this.objectCharacteristicsAssociationRepository.remove(carousel.objectCharacteristicsAssociations);
 
-            const carouselToDelete = await this.carouselsRepository.findOne(
-                {where: {ID: id}}
-            );
-            if (!carouselToDelete) {
-                throw new NotFoundException('Carousel not found');
-            }
-            await this.carouselsRepository.delete(carouselToDelete);
+            // const carouselToDelete = await this.carouselsRepository.findOne(
+            //     {where: {ID: id}}
+            // );
+            // if (!carouselToDelete) {
+            //     throw new NotFoundException('Carousel not found');
+            // }
+            // await this.carouselsRepository.delete(carouselToDelete);
     
-            return {
-                status: HttpStatus.OK,
-                message: 'Carousel deleted',
-            };
+            // return {
+            //     status: HttpStatus.OK,
+            //     message: 'Carousel deleted',
+            // };
         } catch (error) {
             if (error instanceof NotFoundException) {
                 throw new NotFoundException('Error deleting carousel');

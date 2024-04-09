@@ -34,21 +34,6 @@ export class ObjectsController {
     //     const parsedCharacteristics = JSON.parse(recommendedCharacteristics);
     //     return await this.objectsService.getObjectsByRecommendedCharacteristics(parsedCharacteristics, objectType);
     // }
-    
-    // @Get(':objectType')
-    // @ApiOperation({ summary: 'Get all Objects by object type and optionally by characteristic and selected option' })
-    // @ApiParam({ name: 'objectType', description: 'Type of object' })
-    // @ApiQuery({ name: 'characteristic', required: false, description: 'Characteristic' })
-    // @ApiQuery({ name: 'option_selected', required: false, description: 'Selected option' })
-    // @ApiQuery({ name: 'order_by', required: false, description: 'Order by' })
-    // async getObjects(
-    //     @Param('objectType') objectType: string,
-    //     @Query('characteristic') characteristic?: string,
-    //     @Query('option_selected') optionSelected?: string,
-    //     @Query('order_by') order_by?: string,
-    // ) {
-    //     return await this.objectsService.getObjects(objectType, characteristic, optionSelected, order_by);
-    // }
 
     @Get(':objectType?') // Making objectType optional by adding a question mark after the parameter
     @ApiOperation({ summary: 'Get all Objects by object type and optionally by characteristic and selected option or by recommended characteristics' })
@@ -91,17 +76,15 @@ export class ObjectsController {
     @Post(':objectType')
     @ApiOperation({ summary: 'Create an Object' })
     @ApiConsumes('multipart/form-data')
-    @UseInterceptors(FilesInterceptor('images', 5)) // Use files interceptor for 'images' field with a limit of 5 files
+    @UseInterceptors(FilesInterceptor('images', 5))
     @ApiParam({ name: 'objectType', description: 'Type of object' })
     async createObject(
         @Param('objectType') objectType: string,
         @UploadedFiles() images: Array<Express.Multer.File>,
         @Req() req: Request
     ) {
-        let createObjectDTO: any; // Define a variable to hold the DTO dynamically
-
-        // Construct DTO based on the objectType
-        switch(objectType) {
+        let createObjectDTO: any;
+        switch (objectType) {
             case 'article':
                 createObjectDTO = {
                     title: req.body.title,
@@ -119,13 +102,16 @@ export class ObjectsController {
                 };
                 break;
             case 'carousel':
+                // Pass carousel title and carousel item data to the service
                 createObjectDTO = {
                     title: req.body.title,
-                    subtitle: req.body.subtitle,
-                    description: req.body.description
+                    itemTitle: req.body.itemTitle,
+                    itemSubtitle: req.body.itemSubtitle,
+                    itemDescription: req.body.itemDescription,
+                    itemLink: req.body.itemLink,
+                    itemButtonText: req.body.itemButtonText
                 };
                 break;
-            // Add more cases for other object types as needed
             default:
                 throw new BadRequestException('Invalid object type');
         }
@@ -141,6 +127,7 @@ export class ObjectsController {
         @Param('objectType') objectType: string,
         @Param('id') id: number,
         @UploadedFiles() images: Array<Express.Multer.File>,
+        @Body() carouselItems: any[],
         @Req() req: Request
     ) {
         let updateObjectDTO: any; // Define a variable to hold the DTO dynamically
@@ -163,13 +150,18 @@ export class ObjectsController {
                     equation: req.body.equation
                 };
                 break;
-            case 'carousel':
-                updateObjectDTO = {
-                    title: req.body.title,
-                    subtitle: req.body.subtitle,
-                    description: req.body.description
-                };
-                break;
+                case 'carousel':
+                    // Pass carousel title and carousel item data to the service
+                    updateObjectDTO = {
+                        title: req.body.title,
+                        itemID: req.body.itemID,
+                        itemTitle: req.body.itemTitle,
+                        itemSubtitle: req.body.itemSubtitle,
+                        itemDescription: req.body.itemDescription,
+                        itemLink: req.body.itemLink,
+                        itemButtonText: req.body.itemButtonText
+                    };
+                    break;
             default:
                 throw new BadRequestException('Invalid object type');
         }
@@ -181,9 +173,10 @@ export class ObjectsController {
     @ApiOperation({ summary: 'Delete an Object' })
     async deleteObject(
         @Param('objectType') objectType: string,
-        @Param('id') id: number
+        @Param('id') id: number,
+        @Query('carouselItemID') carouselItemID?: number // Add query parameter to delete a carousel item
     ) {
-        return await this.objectsService.deleteObject(objectType, id);
+        return await this.objectsService.deleteObject(objectType, id, carouselItemID);
     }
 
     @Post('associate/:objectType/:title')
@@ -226,9 +219,6 @@ export class ObjectsController {
     ) {
         return await this.objectsService.incrementViews(objectType, id);
     }
-    
-    
-    
     
 
 }

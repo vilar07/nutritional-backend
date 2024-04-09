@@ -12,6 +12,7 @@ import { MealCards } from './entities/MealCards';
 import { ObjectCharacteristicsAssociation } from './entities/ObjectCharacteristicsAssociation';
 import { Characteristics } from 'src/characteristics/entities/Characteristics';
 import { UserCharacteristicAssociation } from 'src/users/entities/UserCharacteristicAssociation';
+import { CarouselItem } from './entities/CarouselItem';
 
 
 @Module({
@@ -27,6 +28,7 @@ import { UserCharacteristicAssociation } from 'src/users/entities/UserCharacteri
       ObjectCharacteristicsAssociation,
       Characteristics,
       UserCharacteristicAssociation,
+      CarouselItem,
     ]),
     ObjectsModule, // Importe e adicione o ObjectsModule aqui
   ],
