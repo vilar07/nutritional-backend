@@ -15,6 +15,7 @@ import { Calculators } from './entities/Calculators';
 import { Carousels } from './entities/Carousels';
 import { get } from 'http';
 import { CarouselItem } from './entities/CarouselItem';
+import { MealCards } from './entities/MealCards';
 
 
 
@@ -34,6 +35,8 @@ export class ObjectsService {
         private readonly carouselsRepository: Repository<Carousels>,
         @InjectRepository(CarouselItem)
         private readonly carouselItemRepository: Repository<CarouselItem>,
+        @InjectRepository(MealCards)
+        private readonly mealCardsRepository: Repository<MealCards>,
 
     ) {}
 
@@ -168,6 +171,13 @@ export class ObjectsService {
                             return await this.getCarouselsByCharacteristic(characteristic, order_by);
                         }
                         return await this.getCarousels(order_by);
+                    case 'mealCards':
+                        if (characteristic && optionSelected) {
+                            return await this.getMealCardsByCharacteristic(characteristic, optionSelected, order_by);
+                        } else if (characteristic) {
+                            return await this.getMealCardsByCharacteristic(characteristic, order_by);
+                        }
+                        return await this.getMealCards(order_by);
                     default:
                         throw new BadRequestException('Invalid object type');
                 }
@@ -511,6 +521,107 @@ export class ObjectsService {
         }
     }
 
+    async getMealCards(order_by?: string) {
+        if (await this.mealCardsRepository.count() === 0) {
+            return {
+                status: HttpStatus.NOT_FOUND,
+                message: 'No meal cards found',
+            };
+        }
+
+        if (order_by === 'Most Recent') {
+            return this.mealCardsRepository.find({
+                order: {
+                    created_at: 'DESC',
+                },
+            });
+        } else if (order_by === 'Most Popular') {
+            return this.mealCardsRepository.find({
+                order: {
+                    views: 'DESC',
+                },
+            });
+        }
+
+        return this.mealCardsRepository.find();
+    }
+
+    async getMealCardsByCharacteristic(characteristic: string, optionSelected?: string, order_by?: string) {
+        try {
+            const characteristicEntity = await this.characteristicRepository.findOne({ where: { name: characteristic } });
+            if (!characteristicEntity) {
+                throw new HttpException(`Characteristic "${characteristic}" does not exist.`, HttpStatus.NOT_FOUND);
+            }
+        
+            let associations: any[];
+            if (optionSelected) {
+                associations = await this.objectCharacteristicsAssociationRepository.find({
+                    where: {
+                        characteristics: characteristicEntity,
+                        option_selected: optionSelected,
+                    },
+                    relations: ['mealCards'],
+                });
+            } else {
+                associations = await this.objectCharacteristicsAssociationRepository.find({
+                    where: {
+                        characteristics: characteristicEntity,
+                    },
+                    relations: ['mealCards'],
+                });
+            }
+        
+            if (associations.length === 0) {
+                console.log('No meal cards found for the given characteristic.');
+                return []; // Return an empty array if no meal cards are found
+            }
+    
+            // Check if all associations have no meal cards
+            if (associations.every(association => association.mealCards.length === 0)) {
+                console.log('No meal cards found for the given characteristic.');
+                return []; // Return an empty array if no meal cards are found
+            }
+        
+            // Filter associations with non-empty meal cards arrays and get meal card IDs
+            const mealCardsIDs = associations
+            .filter(association => association.mealCards.length > 0)
+            .map(association => association.mealCards[0].ID);
+    
+            // Check if there are no meal cards found
+            if (mealCardsIDs.length === 0) {
+            console.log('No meal cards found for the given characteristic.');
+            return []; // Return an empty array if no meal cards are found
+            }
+
+            if (order_by === 'Most Recent') {
+                return this.mealCardsRepository.find({
+                    where: { ID: In(mealCardsIDs) },
+                    order: {
+                        created_at: 'DESC',
+                    },
+                });
+            } else if (order_by === 'Most Popular') {
+                return this.mealCardsRepository.find({
+                    where: { ID: In(mealCardsIDs) },
+                    order: {
+                        views: 'DESC',
+                    },
+                });
+            }
+    
+            // Retrieve meal cards by IDs
+            return this.mealCardsRepository.find({
+            where: { ID: In(mealCardsIDs) },
+            });
+        } catch (error) {
+            if (error instanceof HttpException) {
+                throw error; // Rethrow the HttpException without logging
+            }
+            console.error('Error getting meal cards by characteristic:', error);
+            throw new Error('Error getting meal cards by characteristic');
+        }
+    }
+
     async getObject(params: GetObjectByIDdto): Promise<any> {
         switch (params.objectType) {
             case 'article':
@@ -550,6 +661,18 @@ export class ObjectsService {
                     };
                 }
                 return carousel;
+            case 'mealCards':
+                const mealCard = await this.mealCardsRepository.findOne({
+                    where: {ID: params.id},
+                    relations: ['objectCharacteristicsAssociations', 'objectCharacteristicsAssociations.characteristics'],
+                })
+                if (!mealCard) {
+                    return {
+                        status: HttpStatus.NOT_FOUND,
+                        message: 'Meal Card not found',
+                    };
+                }
+                return mealCard;
             default:
                 return {
                     status: HttpStatus.NOT_FOUND,
@@ -569,6 +692,8 @@ export class ObjectsService {
                 case 'carousel':
                     return await this.createCarousel(objectData, images[0]); // Handle creating carousel with multiple items
                 // Add more cases for other object types as needed
+                case 'mealCard':
+                    return await this.createMealCard(objectData);
                 default:
                     throw new BadRequestException('Invalid object type');
             }
@@ -787,6 +912,42 @@ export class ObjectsService {
         }
     }
 
+    async createMealCard(mealCardData: any): Promise<any> {
+        try {
+            const existingMealCard = await this.mealCardsRepository.findOne({
+                where: {title: mealCardData.title},
+            });
+            if (existingMealCard) {
+                const errorMessage = 'Meal Card with that title already exists.';
+                throw new HttpException(errorMessage, HttpStatus.CONFLICT);
+            }
+            // Create meal card entity
+            const mealCard = this.mealCardsRepository.create({
+                title: mealCardData.title,
+                price: mealCardData.price,
+                description: mealCardData.description,
+                image: mealCardData.image,
+                category: mealCardData.category,
+                link: mealCardData.link,
+                number_ingridients: mealCardData.number_ingridients,
+            });
+    
+            // Save the meal card to the database
+            await this.mealCardsRepository.save(mealCard);
+    
+            return {
+                status: HttpStatus.CREATED,
+                message: 'Meal Card created',
+            };
+        } catch (error) {
+            if (error instanceof NotFoundException) {
+                throw new NotFoundException('Error creating meal card');
+            } else {
+                throw error;
+            }
+        }
+    }
+
     async updateObject(objectType: string, id: number, objectData: any, images: Array<Express.Multer.File>): Promise<any> {
         try {  
             switch(objectType) {
@@ -796,6 +957,8 @@ export class ObjectsService {
                     return await this.updateCalculator(id, objectData, images[0]);
                 case 'carousel':
                     return await this.updateCarousel(id, objectData, images[0]);
+                case 'mealCard':
+                    return await this.updateMealCard(id, objectData);
                 default:
                     throw new BadRequestException('Invalid object type');
             }
@@ -971,6 +1134,54 @@ export class ObjectsService {
         }
     }
 
+    async updateMealCard(id: number, mealCardData: any): Promise<any> {
+        try {
+            const mealCard = await this.mealCardsRepository.findOne(
+                {where: {ID: id}}
+            );
+            if (!mealCard) {
+                throw new NotFoundException('Meal Card not found');
+            }
+    
+            // Update meal card fields if provided
+            if (mealCardData.title) {
+                mealCard.title = mealCardData.title;
+            }
+            if (mealCardData.price) {
+                mealCard.price = mealCardData.price;
+            }
+            if (mealCardData.description) {
+                mealCard.description = mealCardData.description;
+            }
+            if (mealCardData.image) {
+                mealCard.image = mealCardData.image;
+            }
+            if (mealCardData.category) {
+                mealCard.category = mealCardData.category;
+            }
+            if (mealCardData.link) {
+                mealCard.link = mealCardData.link;
+            }
+            if (mealCardData.number_ingridients) {
+                mealCard.number_ingridients = mealCardData.number_ingridients;
+            }
+    
+            // Save the updated meal card to the database
+            await this.mealCardsRepository.save(mealCard);
+    
+            return {
+                status: HttpStatus.OK,
+                message: 'Meal Card updated',
+            };
+        } catch (error) {
+            if (error instanceof NotFoundException) {
+                throw new NotFoundException('Error updating meal card');
+            } else {
+                throw error;
+            }
+        }
+    }
+
     async deleteObject(objectType: string, id: number, carouselItemID?: number): Promise<any> {
         try {
             switch(objectType) {
@@ -980,6 +1191,8 @@ export class ObjectsService {
                     return await this.deleteCalculator(id);
                 case 'carousel':
                     return await this.deleteCarousel(id, carouselItemID);
+                case 'mealCard':
+                    return await this.deleteMealCard(id);
                 default:
                     throw new BadRequestException('Invalid object type');
             }
@@ -1125,6 +1338,39 @@ export class ObjectsService {
         }
     }
 
+    async deleteMealCard(id: number): Promise<any> {
+        try {
+            const mealCard = await this.mealCardsRepository.findOne(
+                {where: {ID: id}, relations: ['objectCharacteristicsAssociations']}
+            );
+            if (!mealCard) {
+                throw new NotFoundException('Meal Card not found');
+            }
+
+            // Delete associations
+            await this.objectCharacteristicsAssociationRepository.remove(mealCard.objectCharacteristicsAssociations);
+
+            const mealCardToDelete = await this.mealCardsRepository.findOne(
+                {where: {ID: id}}
+            );
+            if (!mealCardToDelete) {
+                throw new NotFoundException('MealCard not found');
+            }
+            await this.mealCardsRepository.delete(mealCardToDelete);
+    
+            return {
+                status: HttpStatus.OK,
+                message: 'Meal Card deleted',
+            };
+        } catch (error) {
+            if (error instanceof NotFoundException) {
+                throw new NotFoundException('Error deleting meal card');
+            } else {
+                throw error;
+            }
+        }
+    }
+        
     //Get all characteristics and its selected options depending on the object type
     async getCharacteristics(objectType: string): Promise<any> {
         try {
@@ -1135,6 +1381,8 @@ export class ObjectsService {
                     return await this.getCalculatorCharacteristics();
                 case 'carousel':
                     return await this.getCarouselCharacteristics();
+                case 'mealCard':
+                    return await this.getMealCardCharacteristics();
                 default:
                     throw new BadRequestException('Invalid object type');
             }
@@ -1160,6 +1408,12 @@ export class ObjectsService {
     }
 
     getCarouselCharacteristics() {
+        return this.objectCharacteristicsAssociationRepository.find({
+            relations: ['characteristics'],
+        });
+    }
+
+    getMealCardCharacteristics() {
         return this.objectCharacteristicsAssociationRepository.find({
             relations: ['characteristics'],
         });
@@ -1278,6 +1532,45 @@ export class ObjectsService {
                                 option_selected: optionName,
                                 characteristics: [characteristic],
                                 carousels: [carousel],
+                            });
+                            await this.objectCharacteristicsAssociationRepository.save(objectCharacteristicsAssociation);
+                        }
+                    }
+                    // Return a success message if all associations are created successfully
+                    return {
+                        status: HttpStatus.CREATED,
+                        message: 'All associations created',
+                    };
+                case "mealCard":
+                    const mealCard = await this.mealCardsRepository.findOne({ where: { title: params.title } });
+                    if (!mealCard) {
+                        throw new HttpException('Meal Card with that title does not exist.', HttpStatus.NOT_FOUND);
+                    }
+                   
+                    for (const association of associations) {
+                        const characteristic = await this.characteristicRepository.findOne({ where: { name: association.characteristic } });
+                        if (!characteristic) {
+                            throw new HttpException(`Characteristic "${association.characteristic}" does not exist.`, HttpStatus.NOT_FOUND);
+                        }
+                        
+                        for (const optionName of association.options) {
+                            const existingAssociation = await this.objectCharacteristicsAssociationRepository.findOne({
+                                where: {
+                                    characteristics: characteristic,
+                                    mealCards: mealCard,
+                                    option_selected: optionName,
+                                },
+                                relations: ['characteristics', 'mealCards'],
+                            });
+    
+                            if (existingAssociation) {
+                                continue; // Skip if association already exists
+                            }
+                            
+                            const objectCharacteristicsAssociation = this.objectCharacteristicsAssociationRepository.create({
+                                option_selected: optionName,
+                                characteristics: [characteristic],
+                                mealCards: [mealCard],
                             });
                             await this.objectCharacteristicsAssociationRepository.save(objectCharacteristicsAssociation);
                         }
@@ -1409,6 +1702,42 @@ export class ObjectsService {
                         status: HttpStatus.OK,
                         message: 'Associations updated successfully',
                     };
+                case 'mealCard':
+                    const mealCard = await this.mealCardsRepository.findOne({ where: { title: params.title } });
+                    if (!mealCard) {
+                        throw new HttpException('Meal Card with that title does not exist.', HttpStatus.NOT_FOUND);
+                    }
+    
+                    // Find the existing associations for the specified meal card
+                    associationsToDelete = await this.objectCharacteristicsAssociationRepository.find({
+                        where: { mealCards: mealCard },
+                    });
+
+                    // Delete the existing associations
+                    await this.objectCharacteristicsAssociationRepository.remove(associationsToDelete);
+                    console.log("existing associations deleted successfully")
+    
+                    // Create new associations based on the provided associations
+                    for (const association of associations) {
+                        const characteristic = await this.characteristicRepository.findOne({ where: { name: association.characteristic } });
+                        if (!characteristic) {
+                            throw new HttpException(`Characteristic "${association.characteristic}" does not exist.`, HttpStatus.NOT_FOUND);
+                        }
+    
+                        for (const optionName of association.options) {
+                            const objectCharacteristicsAssociation = this.objectCharacteristicsAssociationRepository.create({
+                                option_selected: optionName,
+                                characteristics: [characteristic],
+                                mealCards: [mealCard],
+                            });
+                            await this.objectCharacteristicsAssociationRepository.save(objectCharacteristicsAssociation);
+                        }
+                    }
+    
+                    return {
+                        status: HttpStatus.OK,
+                        message: 'Associations updated successfully',
+                    };
                 default:
                     throw new HttpException('Object type not found', HttpStatus.NOT_FOUND);
             }
@@ -1430,6 +1759,8 @@ export class ObjectsService {
                     return await this.incrementCalculatorViews(id);
                 case 'carousel':
                     return await this.incrementCarouselViews(id);
+                case 'mealCard':
+                    return await this.incrementMealCardViews(id);
                 default:
                     throw new BadRequestException('Invalid object type');
             }
@@ -1505,6 +1836,29 @@ export class ObjectsService {
         } catch (error) {
             if (error instanceof NotFoundException) {
                 throw new NotFoundException('Error incrementing carousel views');
+            } else {
+                throw error;
+            }
+        }
+    }
+
+    async incrementMealCardViews(id: number): Promise<any> {
+        try {
+            const mealCard = await this.mealCardsRepository.findOne({ where: { ID: id } });
+            if (!mealCard) {
+                throw new HttpException('Meal Card not found', HttpStatus.NOT_FOUND);
+            }
+    
+            mealCard.views += 1;
+            await this.mealCardsRepository.save(mealCard);
+    
+            return {
+                status: HttpStatus.OK,
+                message: 'Meal Card views incremented',
+            };
+        } catch (error) {
+            if (error instanceof NotFoundException) {
+                throw new NotFoundException('Error incrementing meal card views');
             } else {
                 throw error;
             }

@@ -12,16 +12,25 @@ export class MealCards {
   @Column({ type: 'varchar' })
   title: string;
 
+  @Column({ type: 'numeric', precision: 10, scale: 2 })
+  price: number; 
+
   @Column({ type: 'varchar' })
-  subtitle: string;
+  category: string;
+
+  @Column({ type: 'varchar' })
+  description: string;
+
+  @Column({ type: 'varchar' })
+  image: string;
 
   @Column({ type: 'varchar' })
   link: string;
 
-  @Column({ type: 'varchar' })
-  type_of_recipe: string;
+  @Column({ type: 'int', default: 0 })
+  number_ingridients: number;
 
-  @Column({ type: 'int', default: 0 }) // Adicionando o campo de número de visualizações
+  @Column({ type: 'int', default: 0 }) 
   views: number;
    
   @Column({ type: 'timestamp', default: () => 'CURRENT_TIMESTAMP' })

@@ -25,16 +25,6 @@ export class ObjectsController {
         return await this.objectsService.getCharacteristics(objectType);
     }
 
-    // //Get all recommended objects by characteristics
-    // @Get('recommended')
-    // async getRecommendedObjects(
-    //     @Query('recommendedCharacteristics') recommendedCharacteristics: string, // Accepting query parameter
-    //     @Query('objectType') objectType?: string
-    // ) {
-    //     const parsedCharacteristics = JSON.parse(recommendedCharacteristics);
-    //     return await this.objectsService.getObjectsByRecommendedCharacteristics(parsedCharacteristics, objectType);
-    // }
-
     @Get(':objectType?') // Making objectType optional by adding a question mark after the parameter
     @ApiOperation({ summary: 'Get all Objects by object type and optionally by characteristic and selected option or by recommended characteristics' })
     @ApiParam({ name: 'objectType', description: 'Type of object', required: false }) // Indicating that objectType is optional in the parameter description
@@ -112,6 +102,17 @@ export class ObjectsController {
                     itemButtonText: req.body.itemButtonText
                 };
                 break;
+            case 'mealCard':
+                createObjectDTO = {
+                    title: req.body.title,
+                    price: req.body.price,
+                    category: req.body.category,
+                    description: req.body.description,
+                    number_ingridients: req.body.number_ingridients,
+                    image: req.body.image,
+                    link: req.body.link
+                };
+                break;
             default:
                 throw new BadRequestException('Invalid object type');
         }
@@ -160,6 +161,17 @@ export class ObjectsController {
                         itemDescription: req.body.itemDescription,
                         itemLink: req.body.itemLink,
                         itemButtonText: req.body.itemButtonText
+                    };
+                    break;
+                case 'mealCard':
+                    updateObjectDTO = {
+                        title: req.body.title,
+                        price: req.body.price,
+                        category: req.body.category,
+                        description: req.body.description,
+                        number_ingridients: req.body.number_ingridients,
+                        image: req.body.image,
+                        link: req.body.link
                     };
                     break;
             default:
