@@ -1082,10 +1082,11 @@ export class ObjectsService {
                     message: 'Carousel item deleted',
                 };
             } else {
+
                 const carousel = await this.carouselsRepository.findOne(
                     {
                         where: {ID: id},
-                        relations: ['objectCharacteristicsAssociations'],
+                        relations: ['objectCharacteristicsAssociations', 'items'],
                     },
                 );
                 if (!carousel) {
@@ -1094,7 +1095,14 @@ export class ObjectsService {
 
                 // Delete associations
                 await this.objectCharacteristicsAssociationRepository.remove(carousel.objectCharacteristicsAssociations);
+                
 
+                //Delete all items in the carousel
+                for (const item of carousel.items) {
+                    await this.carouselItemRepository.delete(item.ID);
+                }
+
+                //Delete the carousel
                 const carouselToDelete = await this.carouselsRepository.findOne(
                     {where: {ID: id}}
                 );
