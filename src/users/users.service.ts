@@ -80,7 +80,7 @@ export class UsersService {
     }
 
     async deleteUser(email: string) {
-        const user = await this.userRepository.findOne({ where: { email: email } });
+        const user = await this.userRepository.findOne({ where: { email: email }, relations: ['userCharacteristicAssociation']});
         if (!user) {
             this.logger.error('User not found');
             return {
@@ -88,6 +88,10 @@ export class UsersService {
                 message: 'User not found',
             };
         }
+        //deletes all the user characteristics
+        await this.userCharacteristicAssociationRepository.remove(user.userCharacteristicAssociation);
+
+
         await this.userRepository.delete({ email: email });
         return {
             status: HttpStatus.OK,
@@ -106,6 +110,7 @@ export class UsersService {
         relations: ['characteristics'],
         });
 
+
         if (!userCharacteristics || userCharacteristics.length === 0) {
         throw new HttpException('Characteristics not found', HttpStatus.NOT_FOUND);
         }
@@ -115,6 +120,10 @@ export class UsersService {
             const characteristicName = curr.characteristics[0].name;
             if (!acc[characteristicName]) {
                 acc[characteristicName] = [];
+            }
+            //if trust level is 0, do not add it to the array
+            if(curr.trust_level === 0){
+                return acc;
             }
             acc[characteristicName].push({
                 ID: curr.ID,
@@ -210,6 +219,11 @@ export class UsersService {
                 
                 uniqueCharacteristics.add(characteristicName);
 
+                //If chhacateristicName is 'Diets', 'Diseases' or 'Allergies', do not decrease trust level
+                if(characteristicName === 'Diets' || characteristicName === 'Diseases' || characteristicName === 'Allergies'){
+                    continue;
+                }
+
                 const characteristic = await this.characteristicsRepository.findOne({ where: { name: characteristicName } });
                 if (!characteristic) {
                     throw new HttpException('Characteristic not found', HttpStatus.NOT_FOUND);
@@ -249,7 +263,20 @@ export class UsersService {
 
       async generateUserCharacteristicMatrix(): Promise<any> {
         const users = await this.userRepository.find(); // Retrieve all users from the database
-        const userAssociations = await this.userCharacteristicAssociationRepository.find({ relations: ['user', 'characteristics'] });
+        let userAssociations = await this.userCharacteristicAssociationRepository.find({ relations: ['user', 'characteristics'] });
+        // Filter out associations with trust_level 0 and delete them
+        const deletionPromises = userAssociations
+        .filter(userAssociation => userAssociation.trust_level === 0)
+        .map(async (userAssociation) => {
+            console.log('Deleting userAssociation with trust level 0:', userAssociation);
+            await this.userCharacteristicAssociationRepository.remove(userAssociation);
+        });
+
+        // Wait for all deletion promises to complete
+        await Promise.all(deletionPromises);
+
+        // Re-fetch user associations after deletion
+        userAssociations = await this.userCharacteristicAssociationRepository.find({ relations: ['user', 'characteristics'] });
         console.log(userAssociations);
         // Initialize the matrix with zeros
         const matrix: number[][] = [];
@@ -268,6 +295,7 @@ export class UsersService {
             // Create an array to store the trust levels for the current user
             const userTrustLevels: number[] = [];
     
+            
             // Populate the trust levels array with trust levels
             userAssociationsFiltered.forEach(association => {
                 const characteristicLabel = `${association.characteristics[0].name}: ${association.option}`;
@@ -347,6 +375,14 @@ export class UsersService {
         
             // Encontre todos os outros usuários no banco de dados
             const otherUsers = await this.userRepository.find({ where: { email: Not(userEmail) } });
+
+            //Se não houver mais que 2 outros utilizadores no banco de dados, não é possível calcular a similaridade
+            // e retorna as características do próprio utilizador
+            if (otherUsers.length < 2) {
+                console.log('Not enough users to calculate similarities.');
+                //Filter characteristics with trust level greater than 0
+                return characteristics;
+            }
         
             // Calcular similaridades entre o usuário dado e todos os outros usuários
             const similarities: { user1: string; user2: string; similarity: number }[] = [];

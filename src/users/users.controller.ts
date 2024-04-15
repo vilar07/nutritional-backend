@@ -1,5 +1,5 @@
-import { Controller, Delete, Get, Post } from '@nestjs/common';
-import { ApiTags } from '@nestjs/swagger';
+import { Controller, Delete, Get, Post, Query } from '@nestjs/common';
+import { ApiQuery, ApiTags } from '@nestjs/swagger';
 import { Logger } from '@nestjs/common';
 import { UsersService } from './users.service';
 import { Body, ValidationPipe, Param } from '@nestjs/common';
@@ -84,10 +84,12 @@ export class UsersController {
     @ApiOperation({ summary: 'Associate Characteristics to an User' })
     async associateCharacteristics(
         @Param('email') email: string,
-        @Body() associations: AssociateCharacteristicsDto 
+        @Body() associations: AssociateCharacteristicsDto,
     ){
         return await this.usersService.associateCharacteristics(email, associations);
     }
+
+     
 
     //Calculate the similarity between the users, see the 2 most similar users and return the recommendaded characteristics
     @Get('/recommendations/:email')

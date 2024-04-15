@@ -661,7 +661,7 @@ export class ObjectsService {
                     };
                 }
                 return carousel;
-            case 'mealCards':
+            case 'mealCard':
                 const mealCard = await this.mealCardsRepository.findOne({
                     where: {ID: params.id},
                     relations: ['objectCharacteristicsAssociations', 'objectCharacteristicsAssociations.characteristics'],
