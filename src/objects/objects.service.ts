@@ -61,7 +61,7 @@ export class ObjectsService {
 
             for (const characteristic of recommendedCharacteristics) {
                 const [category, option] = characteristic.split(':').map(str => str.trim());
-                let result;
+                let result: any;
     
                 if (objectType) {
                     // Retrieve objects only for the specified type
@@ -731,6 +731,8 @@ export class ObjectsService {
                 title: articleData.title,
                 subtitle: articleData.subtitle,
                 description: articleData.description,
+                time_of_day_relevance: articleData.time_of_day_relevance,
+                season_relevance: articleData.season_relevance,
                 image: result.secure_url, // Use the Cloudinary image URL
             });
     
@@ -779,6 +781,8 @@ export class ObjectsService {
                     description: calculatorData.description,
                     variable_to_calculate: calculatorData.variable_to_calculate,
                     equation: calculatorData.equation,
+                    time_of_day_relevance: calculatorData.time_of_day_relevance,
+                    season_relevance: calculatorData.season_relevance,
                     image: result.secure_url, // Use the Cloudinary image URL
                 });
         
@@ -794,6 +798,9 @@ export class ObjectsService {
                     subtitle: calculatorData.subtitle,
                     description: calculatorData.description,
                     equation: calculatorData.equation,
+                    variable_to_calculate: calculatorData.variable_to_calculate,
+                    time_of_day_relevance: calculatorData.time_of_day_relevance,
+                    season_relevance: calculatorData.season_relevance,
                 });
         
                 // Save the calculator to the database
@@ -868,6 +875,8 @@ export class ObjectsService {
                 // Create carousel entity
                 const carousel = this.carouselsRepository.create({
                     title: carouselData.title,
+                    time_of_day_relevance: carouselData.time_of_day_relevance,
+                    season_relevance: carouselData.season_relevance,
                 });
 
                 // Save the new carousel to the database
@@ -930,6 +939,8 @@ export class ObjectsService {
                 category: mealCardData.category,
                 link: mealCardData.link,
                 number_ingridients: mealCardData.number_ingridients,
+                time_of_day_relevance: mealCardData.time_of_day_relevance,
+                season_relevance: mealCardData.season_relevance
             });
     
             // Save the meal card to the database
@@ -1008,6 +1019,12 @@ export class ObjectsService {
             if (articleData.description) {
                 article.description = articleData.description;
             }
+            if (articleData.time_of_day_relevance) {
+                article.time_of_day_relevance = articleData.time_of_day_relevance;
+            }
+            if (articleData.season_relevance) {
+                article.season_relevance = articleData.season_relevance;
+            }
     
             // Save the updated article to the database
             await this.articlesRepository.save(article);
@@ -1068,6 +1085,12 @@ export class ObjectsService {
             if (calculatorData.variable_to_calculate) {
                 calculator.variable_to_calculate = calculatorData.variable_to_calculate;
             }
+            if (calculatorData.time_of_day_relevance) {
+                calculator.time_of_day_relevance = calculatorData.time_of_day_relevance;
+            }
+            if (calculatorData.season_relevance) {
+                calculator.season_relevance = calculatorData.season_relevance;
+            }
     
             // Save the updated calculator to the database
             await this.calculatorsRepository.save(calculator);
@@ -1091,6 +1114,20 @@ export class ObjectsService {
             const existingCarousel = await this.carouselsRepository.findOne(
                 {where: {ID: carouselId}},
             );
+            if (!existingCarousel) {
+                throw new NotFoundException('Carousel not found');
+            }
+            // Update time of day relevance if provided
+            if (carouselData.time_of_day_relevance) {
+                existingCarousel.time_of_day_relevance = carouselData.time_of_day_relevance;
+            }
+            // Update season relevance if provided
+            if (carouselData.season_relevance) {
+                existingCarousel.season_relevance = carouselData.season_relevance;
+            }
+            // Save the updated carousel to the database
+            await this.carouselsRepository.save(existingCarousel);
+
             // Find the existing carousel item in the carousel item repository
             const existingItem = await this.carouselItemRepository.findOne(
                 {where: {ID: carouselData.itemID}, relations: ['carousel']},
@@ -1099,8 +1136,6 @@ export class ObjectsService {
             if (!existingItem && image) {
                  this.createCarousel(carouselData, image);
             }
-    
-            
     
             if (existingItem) {
                 // Update the existing carousel item with the new data
@@ -1164,6 +1199,12 @@ export class ObjectsService {
             }
             if (mealCardData.number_ingridients) {
                 mealCard.number_ingridients = mealCardData.number_ingridients;
+            }
+            if (mealCardData.time_of_day_relevance) {
+                mealCard.time_of_day_relevance = mealCardData.time_of_day_relevance;
+            }
+            if (mealCardData.season_relevance) {
+                mealCard.season_relevance = mealCardData.season_relevance;
             }
     
             // Save the updated meal card to the database

@@ -30,6 +30,12 @@ export class Calculators {
   @Column({ type: 'int', default: 0 }) // Adicionando o campo de número de visualizações
   views: number;
 
+  @Column({ type: 'varchar', nullable: true }) // Time of day relevance
+  time_of_day_relevance: string;
+
+  @Column({ type: 'varchar', nullable: true }) // Seasonal relevance
+  season_relevance: string; // You can store seasons as strings, e.g., "spring", "summer", "fall", "winter"
+
   @Column({ type: 'timestamp', default: () => 'CURRENT_TIMESTAMP' })
   created_at: Date;
 

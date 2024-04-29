@@ -182,7 +182,7 @@ export class UsersService {
             });
 
             // Go through each characteristic and its selected option and associate it to the user
-            //Check if it already exists, and if yes update the trust level by 1
+            // Check if it already exists, and if yes update the trust level by 1
             // Increase the trust levels for selected options
             for (const association of associations.characteristics) {
                 const characteristic = await this.characteristicsRepository.findOne({ where: { name: association.characteristic } });
@@ -191,7 +191,7 @@ export class UsersService {
                 }
 
                 const optionSelected = association.option_selected;
-                let userCharacteristicAssociation = await this.userCharacteristicAssociationRepository.findOne({ where: { option: optionSelected, user, characteristics: characteristic } });
+                let userCharacteristicAssociation = await this.userCharacteristicAssociationRepository.findOne({ where: { option: optionSelected, user: user, characteristics: characteristic } });
                 if (userCharacteristicAssociation) {
                     //if trust_level is 10, do not increase it
                     if(userCharacteristicAssociation.trust_level === 10){
@@ -234,7 +234,7 @@ export class UsersService {
                     .map(c => c.option_selected);
 
                 const otherAssociations = await this.userCharacteristicAssociationRepository.find({
-                    where: { user, characteristics: characteristic, option: Not(In(optionsSelected)) },
+                    where: { user: user, characteristics: characteristic, option: Not(In(optionsSelected)) },
                 });
 
                 for (const otherAssociation of otherAssociations) {
@@ -256,9 +256,7 @@ export class UsersService {
             } else {
                 throw error;
             }
-        }
-        
-        
+        }  
       }
 
       async generateUserCharacteristicMatrix(): Promise<any> {
@@ -375,13 +373,51 @@ export class UsersService {
         
             // Encontre todos os outros usuários no banco de dados
             const otherUsers = await this.userRepository.find({ where: { email: Not(userEmail) } });
+            console.log ('Other users:', otherUsers);
 
             //Se não houver mais que 2 outros utilizadores no banco de dados, não é possível calcular a similaridade
             // e retorna as características do próprio utilizador
+            const recommendedCharacteristics: { user: string; characteristics: { [label: string]: number } }[] = [];
             if (otherUsers.length < 2) {
                 console.log('Not enough users to calculate similarities.');
-                //Filter characteristics with trust level greater than 0
-                return characteristics;
+                
+                // Retorna as características do próprio utilizador
+                const userCharacteristics = matrix[userIndex];
+                const userRecommendedCharacteristics: { [label: string]: number } = {};
+                
+                // Popula o objeto userRecommendedCharacteristics
+                for (let i = 0; i < userCharacteristics.length; i++) {
+                    const trustLevel = userCharacteristics[i];
+                    userRecommendedCharacteristics[characteristics[i]] = trustLevel;
+                }
+                
+                console.log(`User ${userEmail} characteristics:`, userRecommendedCharacteristics);
+                
+                // Retornar as características do próprio utilizador e as características únicas recomendadas
+                const uniqueCharacteristics: Set<string> = new Set();
+                
+                // Adicionar as características do usuário próprio com trust level maior que 0
+                Object.keys(userRecommendedCharacteristics).forEach(label => {
+                    if (userRecommendedCharacteristics[label] > 0) {
+                        uniqueCharacteristics.add(label);
+                    }
+                });
+                
+                // Adicionar as características dos usuários recomendados com trust level maior que 0
+                recommendedCharacteristics.forEach(rc => {
+                    Object.keys(rc.characteristics).forEach(label => {
+                        if (rc.characteristics[label] > 0) {
+                            uniqueCharacteristics.add(label);
+                        }
+                    });
+                });
+                
+                const uniqueCharacteristicsArray = Array.from(uniqueCharacteristics);
+                console.log('Unique characteristics:', uniqueCharacteristicsArray);
+                
+                // Chame o método getObjectsByRecommendedCharacteristics com as características recomendadas
+                // Aqui você precisará substituir o retorno pelo método que você deseja chamar
+                return uniqueCharacteristicsArray;
             }
         
             // Calcular similaridades entre o usuário dado e todos os outros usuários
@@ -403,7 +439,7 @@ export class UsersService {
             const mostSimilarUsers = similarities.slice(0, 2);
         
             // Obtenha as características com os níveis de confiança mais altos dos dois usuários mais similares
-            const recommendedCharacteristics: { user: string; characteristics: { [label: string]: number } }[] = [];
+            
             for (const similarUser of mostSimilarUsers) {
                 console.log(`Similarity between ${similarUser.user1} and ${similarUser.user2}:`, similarUser.similarity);
                 const similarUserIndex = users.findIndex((u: string) => u === similarUser.user2);

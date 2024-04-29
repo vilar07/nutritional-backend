@@ -79,7 +79,9 @@ export class ObjectsController {
                 createObjectDTO = {
                     title: req.body.title,
                     subtitle: req.body.subtitle,
-                    description: req.body.description
+                    description: req.body.description,
+                    time_of_day_relevance: req.body.time_of_day_relevance,
+                    season_relevance: req.body.season_relevance
                 };
                 break;
             case 'calculator':
@@ -88,13 +90,17 @@ export class ObjectsController {
                     subtitle: req.body.subtitle,
                     description: req.body.description,
                     variable_to_calculate: req.body.variable_to_calculate,
-                    equation: req.body.equation
+                    equation: req.body.equation,
+                    time_of_day_relevance: req.body.time_of_day_relevance,
+                    season_relevance: req.body.season_relevance
                 };
                 break;
             case 'carousel':
                 // Pass carousel title and carousel item data to the service
                 createObjectDTO = {
                     title: req.body.title,
+                    time_of_day_relevance: req.body.time_of_day_relevance,
+                    season_relevance: req.body.season_relevance,
                     itemTitle: req.body.itemTitle,
                     itemSubtitle: req.body.itemSubtitle,
                     itemDescription: req.body.itemDescription,
@@ -110,7 +116,9 @@ export class ObjectsController {
                     description: req.body.description,
                     number_ingridients: req.body.number_ingridients,
                     image: req.body.image,
-                    link: req.body.link
+                    link: req.body.link,
+                    time_of_day_relevance: req.body.time_of_day_relevance,
+                    season_relevance: req.body.season_relevance
                 };
                 break;
             default:
@@ -139,7 +147,9 @@ export class ObjectsController {
                 updateObjectDTO = {
                     title: req.body.title,
                     subtitle: req.body.subtitle,
-                    description: req.body.description
+                    description: req.body.description,
+                    time_of_day_relevance: req.body.time_of_day_relevance,
+                    season_relevance: req.body.season_relevance
                 };
                 break;
             case 'calculator':
@@ -148,13 +158,17 @@ export class ObjectsController {
                     subtitle: req.body.subtitle,
                     description: req.body.description,
                     variable_to_calculate: req.body.variable_to_calculate,
-                    equation: req.body.equation
+                    equation: req.body.equation,
+                    time_of_day_relevance: req.body.time_of_day_relevance,
+                    season_relevance: req.body.season_relevance
                 };
                 break;
                 case 'carousel':
                     // Pass carousel title and carousel item data to the service
                     updateObjectDTO = {
                         title: req.body.title,
+                        time_of_day_relevance: req.body.time_of_day_relevance,
+                        season_relevance: req.body.season_relevance,
                         itemID: req.body.itemID,
                         itemTitle: req.body.itemTitle,
                         itemSubtitle: req.body.itemSubtitle,
@@ -171,7 +185,9 @@ export class ObjectsController {
                         description: req.body.description,
                         number_ingridients: req.body.number_ingridients,
                         image: req.body.image,
-                        link: req.body.link
+                        link: req.body.link,
+                        time_of_day_relevance: req.body.time_of_day_relevance,
+                    season_relevance: req.body.season_relevance
                     };
                     break;
             default:

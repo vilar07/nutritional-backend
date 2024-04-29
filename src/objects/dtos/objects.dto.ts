@@ -24,6 +24,14 @@ import { IsOptional, IsNotEmpty } from 'class-validator';
         @ApiProperty({ description: 'The description of the article', type: 'string' })
         @IsNotEmpty({ message: 'Description cannot be empty' })
         description: string;
+
+        @ApiProperty({ description: 'The Time of the day (Morning, Afternoon, Evening)', type: 'string' })
+        @IsOptional()
+        time_of_day_relevance: string;
+
+        @ApiProperty({ description: 'The Seasonal relevance (Spring, Summer, Fall, Winter)', type: 'string' })
+        @IsOptional()
+        season_relevance: string;
     }
 
     export class CreateCalculatorDTO {
@@ -42,6 +50,14 @@ import { IsOptional, IsNotEmpty } from 'class-validator';
         @ApiProperty({ description: 'The equation of the calculator', type: 'string' })
         @IsNotEmpty({ message: 'Equation cannot be empty' })
         equation: string;
+
+        @ApiProperty({ description: 'The Time of the day (Morning, Afternoon, Evening)', type: 'string' })
+        @IsOptional()
+        time_of_day_relevance: string;
+
+        @ApiProperty({ description: 'The Seasonal relevance (Spring, Summer, Fall, Winter)', type: 'string' })
+        @IsOptional()
+        season_relevance: string;
     }
 
     export class UpdateArticleDTO {
@@ -53,6 +69,12 @@ import { IsOptional, IsNotEmpty } from 'class-validator';
     
         @ApiProperty({ required: false })
         description?: string;
+
+        @ApiProperty({ required: false })
+        time_of_day_relevance?: string;
+
+        @ApiProperty({ required: false })
+        season_relevance?: string;
     }
 
     export class AssociationItemDTO {
