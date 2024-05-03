@@ -248,5 +248,60 @@ export class ObjectsController {
         return await this.objectsService.incrementViews(objectType, id);
     }
     
+    //Get ratings that a user has on an object, given the user email, object type and object id
+    @Get('ratings/:objectType/:id/:email')
+    @ApiOperation({ summary: 'Get ratings that a user has on an object, given the user email, object type and object id' })
+    async getUserRatings(
+        @Param('objectType') objectType: string,
+        @Param('id') id: number,
+        @Param('email') email: string
+    ) {
+        return await this.objectsService.getUserRatings(objectType, id, email);
+    }
 
+    //Get ratings of an object given the id and object type
+    @Get('ratings/:objectType/:id')
+    @ApiOperation({ summary: 'Get ratings of an object given the id and object type'})
+    async getRatings(
+        @Param('objectType') objectType: string,
+        @Param('id') id: number
+    ) {
+        return await this.objectsService.getRatings(objectType, id);
+    }
+
+    //Post a rating on an object, where the rating is an integer from 1 to 5 and the user email, object type and object id are provided
+    @Post('ratings/:objectType/:id/:email')
+    @ApiOperation({ summary: 'Post a rating on an object, where the rating is an integer from 1 to 5 and the user email, object type and object id are provided' })
+    async postRating(
+        @Param('objectType') objectType: string,
+        @Param('id') id: number,
+        @Param('email') email: string,
+        @Body() rating: number
+    ) {
+        return await this.objectsService.postRating(email, objectType, id,  rating);
+    }
+
+
+    //Update a rating on an object, where the rating is an integer from 1 to 5 and the user email, object type and object id are provided
+    @Put('ratings/:objectType/:id/:email')
+    @ApiOperation({ summary: 'Update a rating on an object, where the rating is an integer from 1 to 5 and the user email, object type and object id are provided' })
+    async updateRating(
+        @Param('objectType') objectType: string,
+        @Param('id') id: number,
+        @Param('email') email: string,
+        @Body() rating: number
+    ) {
+        return await this.objectsService.updateRating(email, objectType, id, rating);
+    }
+
+    //Delete a rating on an object, where the user email, object type and object id are provided
+    @Delete('ratings/:objectType/:id/:email')
+    @ApiOperation({ summary: 'Delete a rating on an object, where the user email, object type and object id are provided' })
+    async deleteRating(
+        @Param('objectType') objectType: string,
+        @Param('id') id: number,
+        @Param('email') email: string
+    ) {
+        return await this.objectsService.deleteRating(email, objectType, id);
+    }
 }

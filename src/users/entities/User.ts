@@ -1,5 +1,6 @@
 import { Column, Entity, ManyToMany, PrimaryGeneratedColumn } from "typeorm";
 import { UserCharacteristicAssociation } from "./UserCharacteristicAssociation";
+import { ObjectRatings } from "../../objects/entities/ObjectRatings";
 
 @Entity({name: 'users'}) //name of the table
 export class User {
@@ -18,4 +19,7 @@ export class User {
 
     @ManyToMany(() => UserCharacteristicAssociation, userCharacteristicAssociation => userCharacteristicAssociation.user)
     userCharacteristicAssociation: UserCharacteristicAssociation[];
+
+    @ManyToMany(() => ObjectRatings, objectRating => objectRating.users)
+    ratings: ObjectRatings[];
 }

@@ -3,6 +3,7 @@ import { Characteristics } from "../../characteristics/entities/Characteristics"
 import { ActivateWhen } from "./ActivateWhen";
 import { ActivateUntil } from "./ActivateUntil";
 import { ObjectCharacteristicsAssociation } from "./ObjectCharacteristicsAssociation";
+import { ObjectRatings } from "./ObjectRatings";
 
 @Entity("calculators")
 export class Calculators {
@@ -47,4 +48,7 @@ export class Calculators {
 
   @ManyToMany(() => ObjectCharacteristicsAssociation, objectCharacteristicsAssociations => objectCharacteristicsAssociations.calculators)
   objectCharacteristicsAssociations: ObjectCharacteristicsAssociation[];
+
+  @ManyToMany(() => ObjectRatings, objectRating => objectRating.calculators)
+  ratings: ObjectRatings[];
 }

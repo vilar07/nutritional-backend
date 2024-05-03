@@ -3,6 +3,7 @@ import { ActivateWhen } from "../entities/ActivateWhen";
 import { ActivateUntil } from "../entities/ActivateUntil";
 import { ObjectCharacteristicsAssociation } from "./ObjectCharacteristicsAssociation";
 import { CarouselItem } from "./CarouselItem";
+import { ObjectRatings } from "./ObjectRatings";
 
 @Entity('carousels')
 export class Carousels{
@@ -37,4 +38,7 @@ export class Carousels{
 
     @ManyToMany(() => ObjectCharacteristicsAssociation, objectCharacteristicsAssociations => objectCharacteristicsAssociations.carousels)
     objectCharacteristicsAssociations: ObjectCharacteristicsAssociation[];
+
+    @ManyToMany(() => ObjectRatings, objectRating => objectRating.carousels)
+    ratings: ObjectRatings[];
 }

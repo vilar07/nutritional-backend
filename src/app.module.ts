@@ -20,6 +20,7 @@ import { MealCards } from './objects/entities/MealCards';
 import { ObjectCharacteristicsAssociation } from './objects/entities/ObjectCharacteristicsAssociation';
 import { UserCharacteristicAssociation } from './users/entities/UserCharacteristicAssociation';
 import { CarouselItem } from './objects/entities/CarouselItem';
+import { ObjectRatings } from './objects/entities/ObjectRatings';
 
 
 @Module({
@@ -33,7 +34,7 @@ import { CarouselItem } from './objects/entities/CarouselItem';
       database: "nutritionalService",
       entities: [User, Characteristics, ProfileCharacteristicsType, CharacteristicsType, CharacteristicsPossibleOptions,
       ActivateWhen, ActivateUntil, Articles, Calculators, Carousels, Forms, MealCards, ObjectCharacteristicsAssociation,
-      UserCharacteristicAssociation, CarouselItem
+      UserCharacteristicAssociation, CarouselItem, ObjectRatings,
       ],
       synchronize: false,
       logging: true,

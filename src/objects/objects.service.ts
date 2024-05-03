@@ -16,6 +16,8 @@ import { Carousels } from './entities/Carousels';
 import { get } from 'http';
 import { CarouselItem } from './entities/CarouselItem';
 import { MealCards } from './entities/MealCards';
+import { ObjectRatings } from './entities/ObjectRatings';
+import { User } from 'src/users/entities/User';
 
 
 
@@ -37,6 +39,10 @@ export class ObjectsService {
         private readonly carouselItemRepository: Repository<CarouselItem>,
         @InjectRepository(MealCards)
         private readonly mealCardsRepository: Repository<MealCards>,
+        @InjectRepository(ObjectRatings)
+        private readonly objectRatingsRepository: Repository<ObjectRatings>,
+        @InjectRepository(User)
+        private readonly userRepository: Repository<User>,
 
     ) {}
 
@@ -216,6 +222,18 @@ export class ObjectsService {
             });
             console.log('Ordered articles:', articles);
             return articles;
+        } else if (order_by === 'Best Rating') {
+            const articles = await this.objectRatingsRepository.createQueryBuilder('objectRating')
+                .select('articles.*') // Select all columns from articles
+                .addSelect('AVG(objectRating.rating)', 'avg_rating') // Calculate average rating
+                .leftJoin('objectRating.articles', 'articles')
+                .where('articles.ID IS NOT NULL') // Exclude records where article ID is null
+                .groupBy('articles.ID')
+                .orderBy('avg_rating', 'DESC')
+                .getRawMany();
+        
+            console.log('Ordered articles by Best Rating:', articles);
+            return articles;
         }
     
         const articles = await this.articlesRepository.find();
@@ -315,6 +333,18 @@ export class ObjectsService {
                     views: 'DESC',
                 },
             });
+        } else if (order_by === 'Best Rating') {
+            const calculators = await this.objectRatingsRepository.createQueryBuilder('objectRating')
+                .select('calculators.*') // Select all columns from calculators
+                .addSelect('AVG(objectRating.rating)', 'avg_rating') // Calculate average rating
+                .leftJoin('objectRating.calculators', 'calculators')
+                .where('calculators.ID IS NOT NULL') // Exclude records where calculator ID is null
+                .groupBy('calculators.ID')
+                .orderBy('avg_rating', 'DESC')
+                .getRawMany();
+        
+            console.log('Ordered calculators by Best Rating:', calculators);
+            return calculators;
         }
 
         return this.calculatorsRepository.find();
@@ -422,6 +452,18 @@ export class ObjectsService {
                     views: 'DESC',
                 },
             });
+        } else if (order_by === 'Best Rating') {
+            carousels = await this.objectRatingsRepository.createQueryBuilder('objectRating')
+                .select('carousels.*') // Select all columns from carousels
+                .addSelect('AVG(objectRating.rating)', 'avg_rating') // Calculate average rating
+                .leftJoin('objectRating.carousels', 'carousels')
+                .where('carousels.ID IS NOT NULL') // Exclude records where carousel ID is null
+                .groupBy('carousels.ID')
+                .orderBy('avg_rating', 'DESC')
+                .getRawMany();
+        
+            console.log('Ordered carousels by Best Rating:', carousels);
+            return carousels;
         } else {
             carousels = await this.carouselsRepository.find({relations: ['items']});
         }
@@ -541,6 +583,18 @@ export class ObjectsService {
                     views: 'DESC',
                 },
             });
+        } else if (order_by === 'Best Rating') {
+            const mealCards = await this.objectRatingsRepository.createQueryBuilder('objectRating')
+                .select('mealCards.*') // Select all columns from mealCards
+                .addSelect('AVG(objectRating.rating)', 'avg_rating') // Calculate average rating
+                .leftJoin('objectRating.mealCards', 'mealCards')
+                .where('mealCards.ID IS NOT NULL') // Exclude records where meal card ID is null
+                .groupBy('mealCards.ID')
+                .orderBy('avg_rating', 'DESC')
+                .getRawMany();
+        
+            console.log('Ordered meal cards by Best Rating:', mealCards);
+            return mealCards;
         }
 
         return this.mealCardsRepository.find();
@@ -1900,6 +1954,885 @@ export class ObjectsService {
         } catch (error) {
             if (error instanceof NotFoundException) {
                 throw new NotFoundException('Error incrementing meal card views');
+            } else {
+                throw error;
+            }
+        }
+    }
+
+    //Get the average rating of an object given the object type and id
+    async getRatings(objectType: string, id: number): Promise<any> {
+        try {
+            switch(objectType) {
+                case 'article':
+                    return await this.getArticleAverageRating(id);
+                case 'calculator':
+                    return await this.getCalculatorAverageRating(id);
+                case 'carousel':
+                    return await this.getCarouselAverageRating(id);
+                case 'mealCard':
+                    return await this.getMealCardAverageRating(id);
+                default:
+                    throw new BadRequestException('Invalid object type');
+            }
+        } catch (error) {
+            if (error instanceof NotFoundException) {
+                throw new NotFoundException('Error getting average rating');
+            } else {
+                throw error;
+            }
+        }
+    }
+
+    async getArticleAverageRating(id: number): Promise<any> {
+        try {
+            const article = await this.articlesRepository.findOne({ where: { ID: id } });
+            if (!article) {
+                throw new HttpException('Article not found', HttpStatus.NOT_FOUND);
+            }
+    
+            const ratings = await this.objectRatingsRepository.find({ where: { articles: article } });
+            if (!ratings) {
+                throw new HttpException('Ratings not found', HttpStatus.NOT_FOUND);
+            }
+    
+            let totalRating = 0;
+            for (const rating of ratings) {
+                totalRating += rating.rating;
+            }
+    
+            //Calculate Average Rating but one decimal place like 0.0 or 4.5 etc
+            
+            let averageRating: any;
+                if (totalRating === 0) {
+                    averageRating = '0.0';
+                } else {
+                    averageRating = (totalRating / ratings.length).toFixed(1);
+                }
+
+            
+            // Calculate percentage for each star rating
+            const ratingsCount = ratings.length;
+            const oneStarPercentage = ratingsCount === 0 ? 0 : (ratings.filter(rating => rating.rating === 1).length / ratingsCount * 100);
+            const twoStarPercentage = ratingsCount === 0 ? 0 : (ratings.filter(rating => rating.rating === 2).length / ratingsCount * 100);
+            const threeStarPercentage = ratingsCount === 0 ? 0 : (ratings.filter(rating => rating.rating === 3).length / ratingsCount * 100);
+            const fourStarPercentage = ratingsCount === 0 ? 0 : (ratings.filter(rating => rating.rating === 4).length / ratingsCount * 100);
+            const fiveStarPercentage = ratingsCount === 0 ? 0 : (ratings.filter(rating => rating.rating === 5).length / ratingsCount * 100);
+
+            // Return Average Rating, each star average percentage, and total number of ratings
+            return {
+                status: HttpStatus.OK,
+                averageRating: averageRating,
+                ratingsCount: ratingsCount,
+                oneStarPercentage: oneStarPercentage,
+                twoStarPercentage: twoStarPercentage,
+                threeStarPercentage: threeStarPercentage,
+                fourStarPercentage: fourStarPercentage,
+                fiveStarPercentage: fiveStarPercentage,
+            };
+            
+        } catch (error) {
+            if (error instanceof NotFoundException) {
+                throw new NotFoundException('Error getting article average rating');
+            } else {
+                throw error;
+            }
+        }
+    }
+
+    async getCalculatorAverageRating(id: number): Promise<any> {
+        try {
+            const calculator = await this.calculatorsRepository.findOne({ where: { ID: id } });
+            if (!calculator) {
+                throw new HttpException('Calculator not found', HttpStatus.NOT_FOUND);
+            }
+    
+            const ratings = await this.objectRatingsRepository.find({ where: { calculators: calculator } });
+            if (!ratings) {
+                throw new HttpException('Ratings not found', HttpStatus.NOT_FOUND);
+            }
+    
+            let totalRating = 0;
+            for (const rating of ratings) {
+                totalRating += rating.rating;
+            }
+    
+            let averageRating: any;
+
+            if (totalRating === 0) {
+                averageRating = '0.0';
+            } else {
+                averageRating = (totalRating / ratings.length).toFixed(1);
+            }
+
+            // Calculate percentage for each star rating
+            const ratingsCount = ratings.length;
+            const oneStarPercentage = ratingsCount === 0 ? 0 : (ratings.filter(rating => rating.rating === 1).length / ratingsCount * 100);
+            const twoStarPercentage = ratingsCount === 0 ? 0 : (ratings.filter(rating => rating.rating === 2).length / ratingsCount * 100);
+            const threeStarPercentage = ratingsCount === 0 ? 0 : (ratings.filter(rating => rating.rating === 3).length / ratingsCount * 100);
+            const fourStarPercentage = ratingsCount === 0 ? 0 : (ratings.filter(rating => rating.rating === 4).length / ratingsCount * 100);
+            const fiveStarPercentage = ratingsCount === 0 ? 0 : (ratings.filter(rating => rating.rating === 5).length / ratingsCount * 100);
+
+            // Return Average Rating, each star average percentage, and total number of ratings
+            return {
+                status: HttpStatus.OK,
+                averageRating: averageRating,
+                ratingsCount: ratingsCount,
+                oneStarPercentage: oneStarPercentage,
+                twoStarPercentage: twoStarPercentage,
+                threeStarPercentage: threeStarPercentage,
+                fourStarPercentage: fourStarPercentage,
+                fiveStarPercentage: fiveStarPercentage,
+            };
+
+        } catch (error) {
+            if (error instanceof NotFoundException) {
+                throw new NotFoundException('Error getting calculator average rating');
+            } else {
+                throw error;
+            }
+        }
+    }
+
+    async getCarouselAverageRating(id: number): Promise<any> {
+        try {
+            const carousel = await this.carouselsRepository.findOne({ where: { ID: id } });
+            if (!carousel) {
+                throw new HttpException('Carousel not found', HttpStatus.NOT_FOUND);
+            }
+    
+            const ratings = await this.objectRatingsRepository.find({ where: { carousels: carousel } });
+            if (!ratings) {
+                throw new HttpException('Ratings not found', HttpStatus.NOT_FOUND);
+            }
+    
+            let totalRating = 0;
+            for (const rating of ratings) {
+                totalRating += rating.rating;
+            }
+    
+            let averageRating: any;
+            if (totalRating === 0) {
+                averageRating = '0.0';
+            }
+            else {
+                averageRating = (totalRating / ratings.length).toFixed(1);
+            }
+
+            // Calculate percentage for each star rating
+            const ratingsCount = ratings.length;
+            const oneStarPercentage = ratingsCount === 0 ? 0 : (ratings.filter(rating => rating.rating === 1).length / ratingsCount * 100);
+            const twoStarPercentage = ratingsCount === 0 ? 0 : (ratings.filter(rating => rating.rating === 2).length / ratingsCount * 100);
+            const threeStarPercentage = ratingsCount === 0 ? 0 : (ratings.filter(rating => rating.rating === 3).length / ratingsCount * 100);
+            const fourStarPercentage = ratingsCount === 0 ? 0 : (ratings.filter(rating => rating.rating === 4).length / ratingsCount * 100);
+            const fiveStarPercentage = ratingsCount === 0 ? 0 : (ratings.filter(rating => rating.rating === 5).length / ratingsCount * 100);
+
+            // Return Average Rating, each star average percentage, and total number of ratings
+            return {
+                status: HttpStatus.OK,
+                averageRating: averageRating,
+                ratingsCount: ratingsCount,
+                oneStarPercentage: oneStarPercentage,
+                twoStarPercentage: twoStarPercentage,
+                threeStarPercentage: threeStarPercentage,
+                fourStarPercentage: fourStarPercentage,
+                fiveStarPercentage: fiveStarPercentage,
+            };
+
+        } catch (error) {
+            if (error instanceof NotFoundException) {
+                throw new NotFoundException('Error getting carousel average rating');
+            } else {
+                throw error;
+            }
+        }
+    }
+
+    async getMealCardAverageRating(id: number): Promise<any> {
+        try {
+            const mealCard = await this.mealCardsRepository.findOne({ where: { ID: id } });
+            if (!mealCard) {
+                throw new HttpException('Meal Card not found', HttpStatus.NOT_FOUND);
+            }
+    
+            const ratings = await this.objectRatingsRepository.find({ where: { mealCards: mealCard } });
+            if (!ratings) {
+                throw new HttpException('Ratings not found', HttpStatus.NOT_FOUND);
+            }
+    
+            let totalRating = 0;
+            for (const rating of ratings) {
+                totalRating += rating.rating;
+            }
+    
+            let averageRating: any;
+            if (totalRating === 0) {
+                averageRating = '0.0';
+            } else {
+                averageRating = (totalRating / ratings.length).toFixed(1);
+            }
+
+            // Calculate percentage for each star rating
+            const ratingsCount = ratings.length;
+            const oneStarPercentage = ratingsCount === 0 ? 0 : (ratings.filter(rating => rating.rating === 1).length / ratingsCount * 100);
+            const twoStarPercentage = ratingsCount === 0 ? 0 : (ratings.filter(rating => rating.rating === 2).length / ratingsCount * 100);
+            const threeStarPercentage = ratingsCount === 0 ? 0 : (ratings.filter(rating => rating.rating === 3).length / ratingsCount * 100);
+            const fourStarPercentage = ratingsCount === 0 ? 0 : (ratings.filter(rating => rating.rating === 4).length / ratingsCount * 100);
+            const fiveStarPercentage = ratingsCount === 0 ? 0 : (ratings.filter(rating => rating.rating === 5).length / ratingsCount * 100);
+
+            // Return Average Rating, each star average percentage, and total number of ratings
+            return {
+                status: HttpStatus.OK,
+                averageRating: averageRating,
+                ratingsCount: ratingsCount,
+                oneStarPercentage: oneStarPercentage,
+                twoStarPercentage: twoStarPercentage,
+                threeStarPercentage: threeStarPercentage,
+                fourStarPercentage: fourStarPercentage,
+                fiveStarPercentage: fiveStarPercentage,
+            };
+
+        } catch (error) {
+            if (error instanceof NotFoundException) {
+                throw new NotFoundException('Error getting meal card average rating');
+            } else {
+                throw error;
+            }
+        }
+    }
+
+    //Get ratings that a user has on an object, given the user email, object type and object id
+    async getUserRatings(objectType: string, id: number, userEmail: string): Promise<any> {
+        try {
+            switch(objectType) {
+                case 'article':
+                    return await this.getUserArticleRatings(userEmail, id);
+                case 'calculator':
+                    return await this.getUserCalculatorRatings(userEmail, id);
+                case 'carousel':
+                    return await this.getUserCarouselRatings(userEmail, id);
+                case 'mealCard':
+                    return await this.getUserMealCardRatings(userEmail, id);
+                default:
+                    throw new BadRequestException('Invalid object type');
+            }
+        } catch (error) {
+            if (error instanceof NotFoundException) {
+                throw new NotFoundException('Error getting user ratings');
+            } else {
+                throw error;
+            }
+        }
+    }
+
+    async getUserArticleRatings(userEmail: string, id: number): Promise<any> {
+        try {
+            const user = await this.userRepository.findOne({ where: { email: userEmail } });
+            if (!user) {
+                throw new HttpException('User not found', HttpStatus.NOT_FOUND);
+            }
+    
+            const article = await this.articlesRepository.findOne({ where: { ID: id } });
+            if (!article) {
+                throw new HttpException('Article not found', HttpStatus.NOT_FOUND);
+            }
+
+            console.log ('Article:', article);
+            console.log ('User:', user);
+    
+            // const ratings = await this.objectRatingsRepository.findOne({ where: { articles: article, users: user }});
+            const ratings = await this.objectRatingsRepository.findOne({ where: { articles: { ID: article.ID }, users: user }});
+            
+            console.log('Ratings:', ratings);
+            //if no ratings found, return a 404 error
+            if (!ratings) {
+                throw new HttpException('Ratings not found', HttpStatus.NOT_FOUND);
+            }
+            return {
+                status: HttpStatus.OK,
+                ratings: ratings,
+            };
+        } catch (error) {
+            if (error instanceof NotFoundException) {
+                throw new NotFoundException('Error getting user article ratings');
+            } else {
+                throw error;
+            }
+        }
+    }
+
+    async getUserCalculatorRatings(userEmail: string, id: number): Promise<any> {
+        try {
+            const user = await this.userRepository.findOne({ where: { email: userEmail } });
+            if (!user) {
+                throw new HttpException('User not found', HttpStatus.NOT_FOUND);
+            }
+    
+            const calculator = await this.calculatorsRepository.findOne({ where: { ID: id } });
+            if (!calculator) {
+                throw new HttpException('Calculator not found', HttpStatus.NOT_FOUND);
+            }
+    
+            //const ratings = await this.objectRatingsRepository.findOne({ where: { calculators: calculator, users: user } });
+            const ratings = await this.objectRatingsRepository.findOne({ where: { calculators: { ID: calculator.ID }, users: user } });
+    
+            //if no ratings found, return a 404 error
+            if (!ratings) {
+                throw new HttpException('Ratings not found', HttpStatus.NOT_FOUND);
+            }
+            return {
+                status: HttpStatus.OK,
+                ratings: ratings,
+            };
+        } catch (error) {
+            if (error instanceof NotFoundException) {
+                throw new NotFoundException('Error getting user calculator ratings');
+            } else {
+                throw error;
+            }
+        }
+    }
+
+    async getUserCarouselRatings(userEmail: string, id: number): Promise<any> {
+        try {
+            const user = await this.userRepository.findOne({ where: { email: userEmail } });
+            if (!user) {
+                throw new HttpException('User not found', HttpStatus.NOT_FOUND);
+            }
+    
+            const carousel = await this.carouselsRepository.findOne({ where: { ID: id } });
+            if (!carousel) {
+                throw new HttpException('Carousel not found', HttpStatus.NOT_FOUND);
+            }
+    
+            // const ratings = await this.objectRatingsRepository.findOne({ where: { carousels: carousel, users: user } });
+            const ratings = await this.objectRatingsRepository.findOne({ where: { carousels: { ID: carousel.ID }, users: user } });
+            //if no ratings found, return a 404 error
+            if (!ratings) {
+                throw new HttpException('Ratings not found', HttpStatus.NOT_FOUND);
+            }
+            return {
+                status: HttpStatus.OK,
+                ratings: ratings,
+            };
+        } catch (error) {
+            if (error instanceof NotFoundException) {
+                throw new NotFoundException('Error getting user carousel ratings');
+            } else {
+                throw error;
+            }
+        }
+    }
+
+    async getUserMealCardRatings(userEmail: string, id: number): Promise<any> {
+        try {
+            const user = await this.userRepository.findOne({ where: { email: userEmail } });
+            if (!user) {
+                throw new HttpException('User not found', HttpStatus.NOT_FOUND);
+            }
+    
+            const mealCard = await this.mealCardsRepository.findOne({ where: { ID: id } });
+            if (!mealCard) {
+                throw new HttpException('Meal Card not found', HttpStatus.NOT_FOUND);
+            }
+    
+            // const ratings = await this.objectRatingsRepository.findOne({ where: { mealCards: mealCard, users: user } });
+            const ratings = await this.objectRatingsRepository.findOne({ where: { mealCards: { ID: mealCard.ID }, users: user } });
+            //if no ratings found, return a 404 error
+            if (!ratings) {
+                throw new HttpException('Ratings not found', HttpStatus.NOT_FOUND);
+            }
+            return {
+                status: HttpStatus.OK,
+                ratings: ratings,
+            };
+        } catch (error) {
+            if (error instanceof NotFoundException) {
+                throw new NotFoundException('Error getting user meal card ratings');
+            } else {
+                throw error;
+            }
+        }
+    }
+
+    //Post a rating on an object, where the rating is an integer from 1 to 5 and the user email, object type and object id are provided
+    async postRating(userEmail: string, objectType: string, id: number, rating: number): Promise<any> {
+        try {
+            switch(objectType) {
+                case 'article':
+                    return await this.postArticleRating(userEmail, id, rating);
+                case 'calculator':
+                    return await this.postCalculatorRating(userEmail, id, rating);
+                case 'carousel':
+                    return await this.postCarouselRating(userEmail, id, rating);
+                case 'mealCard':
+                    return await this.postMealCardRating(userEmail, id, rating);
+                default:
+                    throw new BadRequestException('Invalid object type');
+            }
+        } catch (error) {
+            if (error instanceof NotFoundException) {
+                throw new NotFoundException('Error posting rating');
+            } else {
+                throw error;
+            }
+        }
+    }
+
+    async postArticleRating(userEmail: string, id: number, rating: any): Promise<any> {
+        try {
+            const user = await this.userRepository.findOne({ where: { email: userEmail } });
+            if (!user) {
+                throw new HttpException('User not found', HttpStatus.NOT_FOUND);
+            }
+    
+            const article = await this.articlesRepository.findOne({ where: { ID: id } });
+            if (!article) {
+                throw new HttpException('Article not found', HttpStatus.NOT_FOUND);
+            }
+
+            //Check if the user has already rated the article
+            const existingRating = await this.objectRatingsRepository.findOne({ where: { articles: article, users: user }, relations: ['articles', 'users']});
+            console.log('Existing Rating:', existingRating);
+            if (existingRating) {
+                throw new HttpException('User has already rated this article', HttpStatus.BAD_REQUEST);
+            }
+    
+            const objectRating = this.objectRatingsRepository.create({
+                rating: rating.rating,
+                users: [user], // Wrap user in an array as it's Many-to-Many
+                articles: [article], // Wrap article in an array as it's Many-to-Many
+            });
+            await this.objectRatingsRepository.save(objectRating);
+    
+            return {
+                status: HttpStatus.CREATED,
+                message: 'Rating posted successfully',
+            };
+        } catch (error) {
+            if (error instanceof NotFoundException) {
+                throw new NotFoundException('Error posting article rating');
+            } else {
+                throw error;
+            }
+        }
+    }
+
+    async postCalculatorRating(userEmail: string, id: number, rating: any): Promise<any> {
+        try {
+            const user = await this.userRepository.findOne({ where: { email: userEmail } });
+            if (!user) {
+                throw new HttpException('User not found', HttpStatus.NOT_FOUND);
+            }
+    
+            const calculator = await this.calculatorsRepository.findOne({ where: { ID: id } });
+            if (!calculator) {
+                throw new HttpException('Calculator not found', HttpStatus.NOT_FOUND);
+            }
+
+            //Check if the user has already rated the calculator
+            const existingRating = await this.objectRatingsRepository.findOne({ where: { calculators: calculator, users: user } });
+            if (existingRating) {
+                throw new HttpException('User has already rated this calculator', HttpStatus.BAD_REQUEST);
+            }
+    
+            const objectRating = this.objectRatingsRepository.create({
+                rating: rating.rating,
+                users: [user], // Wrap user in an array as it's Many-to-Many
+                calculators: [calculator], // Wrap calculator in an array as it's Many-to-Many
+            });
+            await this.objectRatingsRepository.save(objectRating);
+    
+            return {
+                status: HttpStatus.CREATED,
+                message: 'Rating posted successfully',
+            };
+        } catch (error) {
+            if (error instanceof NotFoundException) {
+                throw new NotFoundException('Error posting calculator rating');
+            } else {
+                throw error;
+            }
+        }
+    }
+
+    async postCarouselRating(userEmail: string, id: number, rating: any): Promise<any> {
+        try {
+            const user = await this.userRepository.findOne({ where: { email: userEmail } });
+            if (!user) {
+                throw new HttpException('User not found', HttpStatus.NOT_FOUND);
+            }
+    
+            const carousel = await this.carouselsRepository.findOne({ where: { ID: id } });
+            if (!carousel) {
+                throw new HttpException('Carousel not found', HttpStatus.NOT_FOUND);
+            }
+
+            //Check if the user has already rated the carousel
+            const existingRating = await this.objectRatingsRepository.findOne({ where: { carousels: carousel, users: user } });
+            if (existingRating) {
+                throw new HttpException('User has already rated this carousel', HttpStatus.BAD_REQUEST);
+            }
+    
+            const objectRating = this.objectRatingsRepository.create({
+                rating: rating.rating,
+                users: [user], // Wrap user in an array as it's Many-to-Many
+                carousels: [carousel], // Wrap carousel in an array as it's Many-to-Many
+            });
+            await this.objectRatingsRepository.save(objectRating);
+    
+            return {
+                status: HttpStatus.CREATED,
+                message: 'Rating posted successfully',
+            };
+        } catch (error) {
+            if (error instanceof NotFoundException) {
+                throw new NotFoundException('Error posting carousel rating');
+            } else {
+                throw error;
+            }
+        }
+    }
+
+    async postMealCardRating(userEmail: string, id: number, rating: any): Promise<any> {
+        try {
+            const user = await this.userRepository.findOne({ where: { email: userEmail } });
+            if (!user) {
+                throw new HttpException('User not found', HttpStatus.NOT_FOUND);
+            }
+    
+            const mealCard = await this.mealCardsRepository.findOne({ where: { ID: id } });
+            if (!mealCard) {
+                throw new HttpException('Meal Card not found', HttpStatus.NOT_FOUND);
+            }
+
+            //Check if the user has already rated the meal card
+            const existingRating = await this.objectRatingsRepository.findOne({ where: { mealCards: mealCard, users: user } });
+            if (existingRating) {
+                throw new HttpException('User has already rated this meal card', HttpStatus.BAD_REQUEST);
+            }
+    
+            const objectRating = this.objectRatingsRepository.create({
+                rating: rating.rating,
+                users: [user], // Wrap user in an array as it's Many-to-Many
+                mealCards: [mealCard], // Wrap mealCard in an array as it's Many-to-Many
+            });
+            await this.objectRatingsRepository.save(objectRating);
+    
+            return {
+                status: HttpStatus.CREATED,
+                message: 'Rating posted successfully',
+            };
+        } catch (error) {
+            if (error instanceof NotFoundException) {
+                throw new NotFoundException('Error posting meal card rating');
+            } else {
+                throw error;
+            }
+        }
+    }
+
+    //Update a rating on an object, where the rating is an integer from 1 to 5 and the user email, object type and object id are provided
+    async updateRating(userEmail: string, objectType: string, id: number, rating: number): Promise<any> {
+        try {
+            switch(objectType) {
+                case 'article':
+                    return await this.updateArticleRating(userEmail, id, rating);
+                case 'calculator':
+                    return await this.updateCalculatorRating(userEmail, id, rating);
+                case 'carousel':
+                    return await this.updateCarouselRating(userEmail, id, rating);
+                case 'mealCard':
+                    return await this.updateMealCardRating(userEmail, id, rating);
+                default:
+                    throw new BadRequestException('Invalid object type');
+            }
+        } catch (error) {
+            if (error instanceof NotFoundException) {
+                throw new NotFoundException('Error updating rating');
+            } else {
+                throw error;
+            }
+        }
+    }
+
+    async updateArticleRating(userEmail: string, id: number, rating: any): Promise<any> {
+        try {
+            const user = await this.userRepository.findOne({ where: { email: userEmail } });
+            if (!user) {
+                throw new HttpException('User not found', HttpStatus.NOT_FOUND);
+            }
+    
+            const article = await this.articlesRepository.findOne({ where: { ID: id } });
+            if (!article) {
+                throw new HttpException('Article not found', HttpStatus.NOT_FOUND);
+            }
+    
+            const objectRating = await this.objectRatingsRepository.findOne({ where: { articles: article, users: user } });
+            if (!objectRating) {
+                throw new HttpException('Rating not found', HttpStatus.NOT_FOUND);
+            }
+    
+            objectRating.rating = rating.rating;
+            await this.objectRatingsRepository.save(objectRating);
+    
+            return {
+                status: HttpStatus.OK,
+                message: 'Rating updated successfully',
+            };
+        } catch (error) {
+            if (error instanceof NotFoundException) {
+                throw new NotFoundException('Error updating article rating');
+            } else {
+                throw error;
+            }
+        }
+    }
+
+    async updateCalculatorRating(userEmail: string, id: number, rating: any): Promise<any> {
+        try {
+            const user = await this.userRepository.findOne({ where: { email: userEmail } });
+            if (!user) {
+                throw new HttpException('User not found', HttpStatus.NOT_FOUND);
+            }
+    
+            const calculator = await this.calculatorsRepository.findOne({ where: { ID: id } });
+            if (!calculator) {
+                throw new HttpException('Calculator not found', HttpStatus.NOT_FOUND);
+            }
+    
+            const objectRating = await this.objectRatingsRepository.findOne({ where: { calculators: calculator, users: user } });
+            if (!objectRating) {
+                throw new HttpException('Rating not found', HttpStatus.NOT_FOUND);
+            }
+    
+            objectRating.rating = rating.rating;
+            await this.objectRatingsRepository.save(objectRating);
+    
+            return {
+                status: HttpStatus.OK,
+                message: 'Rating updated successfully',
+            };
+        } catch (error) {
+            if (error instanceof NotFoundException) {
+                throw new NotFoundException('Error updating calculator rating');
+            } else {
+                throw error;
+            }
+        }
+    }
+
+    async updateCarouselRating(userEmail: string, id: number, rating: any): Promise<any> {
+        try {
+            const user = await this.userRepository.findOne({ where: { email: userEmail } });
+            if (!user) {
+                throw new HttpException('User not found', HttpStatus.NOT_FOUND);
+            }
+    
+            const carousel = await this.carouselsRepository.findOne({ where: { ID: id } });
+            if (!carousel) {
+                throw new HttpException('Carousel not found', HttpStatus.NOT_FOUND);
+            }
+    
+            const objectRating = await this.objectRatingsRepository.findOne({ where: { carousels: carousel, users: user } });
+            if (!objectRating) {
+                throw new HttpException('Rating not found', HttpStatus.NOT_FOUND);
+            }
+    
+            objectRating.rating = rating.rating;
+            await this.objectRatingsRepository.save(objectRating);
+    
+            return {
+                status: HttpStatus.OK,
+                message: 'Rating updated successfully',
+            };
+        } catch (error) {
+            if (error instanceof NotFoundException) {
+                throw new NotFoundException('Error updating carousel rating');
+            } else {
+                throw error;
+            }
+        }
+    }
+
+    async updateMealCardRating(userEmail: string, id: number, rating: any): Promise<any> {
+        try {
+            const user = await this.userRepository.findOne({ where: { email: userEmail } });
+            if (!user) {
+                throw new HttpException('User not found', HttpStatus.NOT_FOUND);
+            }
+    
+            const mealCard = await this.mealCardsRepository.findOne({ where: { ID: id } });
+            if (!mealCard) {
+                throw new HttpException('Meal Card not found', HttpStatus.NOT_FOUND);
+            }
+    
+            const objectRating = await this.objectRatingsRepository.findOne({ where: { mealCards: mealCard, users: user } });
+            if (!objectRating) {
+                throw new HttpException('Rating not found', HttpStatus.NOT_FOUND);
+            }
+    
+            objectRating.rating = rating.rating;
+            await this.objectRatingsRepository.save(objectRating);
+    
+            return {
+                status: HttpStatus.OK,
+                message: 'Rating updated successfully',
+            };
+        } catch (error) {
+            if (error instanceof NotFoundException) {
+                throw new NotFoundException('Error updating meal card rating');
+            } else {
+                throw error;
+            }
+        }
+    }
+
+    //Delete a rating on an object, where the user email, object type and object id are provided
+    async deleteRating(userEmail: string, objectType: string, id: number): Promise<any> {
+        try {
+            switch(objectType) {
+                case 'article':
+                    return await this.deleteArticleRating(userEmail, id);
+                case 'calculator':
+                    return await this.deleteCalculatorRating(userEmail, id);
+                case 'carousel':
+                    return await this.deleteCarouselRating(userEmail, id);
+                case 'mealCard':
+                    return await this.deleteMealCardRating(userEmail, id);
+                default:
+                    throw new BadRequestException('Invalid object type');
+            }
+        } catch (error) {
+            if (error instanceof NotFoundException) {
+                throw new NotFoundException('Error deleting rating');
+            } else {
+                throw error;
+            }
+        }
+    }
+
+    async deleteArticleRating(userEmail: string, id: number): Promise<any> {
+        try {
+            const user = await this.userRepository.findOne({ where: { email: userEmail } });
+            if (!user) {
+                throw new HttpException('User not found', HttpStatus.NOT_FOUND);
+            }
+    
+            const article = await this.articlesRepository.findOne({ where: { ID: id } });
+            if (!article) {
+                throw new HttpException('Article not found', HttpStatus.NOT_FOUND);
+            }
+    
+            const objectRating = await this.objectRatingsRepository.findOne({ where: { articles: article, users: user } });
+            if (!objectRating) {
+                throw new HttpException('Rating not found', HttpStatus.NOT_FOUND);
+            }
+    
+            await this.objectRatingsRepository.remove(objectRating);
+    
+            return {
+                status: HttpStatus.OK,
+                message: 'Rating deleted successfully',
+            };
+        } catch (error) {
+            if (error instanceof NotFoundException) {
+                throw new NotFoundException('Error deleting article rating');
+            } else {
+                throw error;
+            }
+        }
+    }
+
+    async deleteCalculatorRating(userEmail: string, id: number): Promise<any> {
+        try {
+            const user = await this.userRepository.findOne({ where: { email: userEmail } });
+            if (!user) {
+                throw new HttpException('User not found', HttpStatus.NOT_FOUND);
+            }
+    
+            const calculator = await this.calculatorsRepository.findOne({ where: { ID: id } });
+            if (!calculator) {
+                throw new HttpException('Calculator not found', HttpStatus.NOT_FOUND);
+            }
+    
+            const objectRating = await this.objectRatingsRepository.findOne({ where: { calculators: calculator, users: user } });
+            if (!objectRating) {
+                throw new HttpException('Rating not found', HttpStatus.NOT_FOUND);
+            }
+    
+            await this.objectRatingsRepository.remove(objectRating);
+    
+            return {
+                status: HttpStatus.OK,
+                message: 'Rating deleted successfully',
+            };
+        } catch (error) {
+            if (error instanceof NotFoundException) {
+                throw new NotFoundException('Error deleting calculator rating');
+            } else {
+                throw error;
+            }
+        }
+    }
+    async deleteCarouselRating(userEmail: string, id: number): Promise<any> {
+        try {
+            const user = await this.userRepository.findOne({ where: { email: userEmail } });
+            if (!user) {
+                throw new HttpException('User not found', HttpStatus.NOT_FOUND);
+            }
+    
+            const carousel = await this.carouselsRepository.findOne({ where: { ID: id } });
+            if (!carousel) {
+                throw new HttpException('Carousel not found', HttpStatus.NOT_FOUND);
+            }
+    
+            const objectRating = await this.objectRatingsRepository.findOne({ where: { carousels: carousel, users: user } });
+            if (!objectRating) {
+                throw new HttpException('Rating not found', HttpStatus.NOT_FOUND);
+            }
+    
+            await this.objectRatingsRepository.remove(objectRating);
+    
+            return {
+                status: HttpStatus.OK,
+                message: 'Rating deleted successfully',
+            };
+        } catch (error) {
+            if (error instanceof NotFoundException) {
+                throw new NotFoundException('Error deleting carousel rating');
+            } else {
+                throw error;
+            }
+        }
+    }
+
+    async deleteMealCardRating(userEmail: string, id: number): Promise<any> {
+        try {
+            const user = await this.userRepository.findOne({ where: { email: userEmail } });
+            if (!user) {
+                throw new HttpException('User not found', HttpStatus.NOT_FOUND);
+            }
+    
+            const mealCard = await this.mealCardsRepository.findOne({ where: { ID: id } });
+            if (!mealCard) {
+                throw new HttpException('Meal Card not found', HttpStatus.NOT_FOUND);
+            }
+    
+            const objectRating = await this.objectRatingsRepository.findOne({ where: { mealCards: mealCard, users: user } });
+            if (!objectRating) {
+                throw new HttpException('Rating not found', HttpStatus.NOT_FOUND);
+            }
+    
+            await this.objectRatingsRepository.remove(objectRating);
+    
+            return {
+                status: HttpStatus.OK,
+                message: 'Rating deleted successfully',
+            };
+        } catch (error) {
+            if (error instanceof NotFoundException) {
+                throw new NotFoundException('Error deleting meal card rating');
             } else {
                 throw error;
             }

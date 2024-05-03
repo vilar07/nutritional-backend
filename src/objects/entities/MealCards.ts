@@ -1,8 +1,8 @@
 import { Entity, PrimaryGeneratedColumn, Column, ManyToMany, JoinTable} from "typeorm";
-import { Characteristics } from "../../characteristics/entities/Characteristics";
 import { ActivateWhen } from "./ActivateWhen";
 import { ActivateUntil } from "./ActivateUntil";
 import { ObjectCharacteristicsAssociation } from "./ObjectCharacteristicsAssociation";
+import { ObjectRatings } from "./ObjectRatings";
 
 @Entity("mealCards")
 export class MealCards {
@@ -50,4 +50,7 @@ export class MealCards {
 
   @ManyToMany(() => ObjectCharacteristicsAssociation, objectCharacteristicsAssociations => objectCharacteristicsAssociations.mealCards)
   objectCharacteristicsAssociations: ObjectCharacteristicsAssociation[];
+
+  @ManyToMany(() => ObjectRatings, objectRating => objectRating.mealCards)
+  ratings: ObjectRatings[];
 }

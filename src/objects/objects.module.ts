@@ -13,6 +13,8 @@ import { ObjectCharacteristicsAssociation } from './entities/ObjectCharacteristi
 import { Characteristics } from 'src/characteristics/entities/Characteristics';
 import { UserCharacteristicAssociation } from 'src/users/entities/UserCharacteristicAssociation';
 import { CarouselItem } from './entities/CarouselItem';
+import { ObjectRatings } from './entities/ObjectRatings';
+import { User } from 'src/users/entities/User';
 
 
 @Module({
@@ -29,6 +31,8 @@ import { CarouselItem } from './entities/CarouselItem';
       Characteristics,
       UserCharacteristicAssociation,
       CarouselItem,
+      ObjectRatings,
+      User,
     ]),
     ObjectsModule, // Importe e adicione o ObjectsModule aqui
   ],
