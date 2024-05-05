@@ -71,7 +71,7 @@ export class ObjectsService {
     
                 if (objectType) {
                     // Retrieve objects only for the specified type
-                    result = await this.getObjects(objectType, category, option);
+                    result = await this.getObjects(objectType, category, option, order_by);
                     if (Array.isArray(result)) {
                         for (const obj of result) {
                             // Check if the object ID is already added, if not, add it
@@ -88,7 +88,6 @@ export class ObjectsService {
                                 // Order by most recent logic
                                 console.log(objects[objectType])
                                 objects[objectType].sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime());
-                                console.log("Ordered", objects[objectType])
                                 break;
                             case 'Most Popular':
                                 // Order by most popular logic
@@ -102,7 +101,6 @@ export class ObjectsService {
                             default:
                                 // Handle invalid order_by value
                                 throw new BadRequestException('Invalid order_by value');
-                                break;
                         }
                     }
                 } else {
@@ -164,28 +162,28 @@ export class ObjectsService {
                         if (characteristic && optionSelected) {
                             return await this.getArticlesByCharacteristic(characteristic, optionSelected, order_by);
                         } else if (characteristic) {
-                            return await this.getArticlesByCharacteristic(characteristic, order_by);
+                            return await this.getArticlesByCharacteristic(characteristic, optionSelected, order_by);
                         }
                         return await this.getArticles(order_by);
                     case 'calculators':
                         if (characteristic && optionSelected) {
                             return await this.getCalculatorsByCharacteristic(characteristic, optionSelected, order_by);
                         } else if (characteristic) {
-                            return await this.getCalculatorsByCharacteristic(characteristic, order_by);
+                            return await this.getCalculatorsByCharacteristic(characteristic, optionSelected, order_by);
                         }
                         return await this.getCalculators(order_by);
                     case 'carousels':
                         if (characteristic && optionSelected) {
                             return await this.getCarouselsByCharacteristic(characteristic, optionSelected, order_by);
                         } else if (characteristic) {
-                            return await this.getCarouselsByCharacteristic(characteristic, order_by);
+                            return await this.getCarouselsByCharacteristic(characteristic, optionSelected, order_by);
                         }
                         return await this.getCarousels(order_by);
                     case 'mealCards':
                         if (characteristic && optionSelected) {
                             return await this.getMealCardsByCharacteristic(characteristic, optionSelected, order_by);
                         } else if (characteristic) {
-                            return await this.getMealCardsByCharacteristic(characteristic, order_by);
+                            return await this.getMealCardsByCharacteristic(characteristic, optionSelected, order_by);
                         }
                         return await this.getMealCards(order_by);
                     default:
@@ -251,6 +249,7 @@ export class ObjectsService {
             if (!characteristicEntity) {
                 throw new HttpException(`Characteristic "${characteristic}" does not exist.`, HttpStatus.NOT_FOUND);
             }
+            console.log('optionSelected:', optionSelected);
     
             let associations: any[];
             if (optionSelected) {
@@ -262,11 +261,14 @@ export class ObjectsService {
                     relations: ['articles'],
                 });
             } else {
+                console.log('Characteristic entity:', characteristicEntity);
+                console.log("Order by:", order_by);
                 associations = await this.objectCharacteristicsAssociationRepository.find({
                     where: { characteristics: characteristicEntity },
                     relations: ['articles'],
                 });
             }
+            console.log('Associations:', associations);
     
             // Check if all associations have no articles
             if (associations.every(association => association.articles.length === 0)) {
@@ -278,6 +280,7 @@ export class ObjectsService {
             const articlesIDs = associations
             .filter(association => association.articles.length > 0)
             .map(association => association.articles[0].ID);
+            console.log('Article IDs:', articlesIDs);
     
             // Check if there are no articles found
             if (articlesIDs.length === 0) {
@@ -300,6 +303,17 @@ export class ObjectsService {
                         views: 'DESC',
                     },
                 });
+                return articles;
+            } else if (order_by === 'Best Rating') {
+                const articles = await this.objectRatingsRepository.createQueryBuilder('objectRating')
+                    .select('articles.*') // Select all columns from articles
+                    .addSelect('AVG(objectRating.rating)', 'avg_rating') // Calculate average rating
+                    .leftJoin('objectRating.articles', 'articles')
+                    .where('articles.ID IS NOT NULL') // Exclude records where article ID is null
+                    .andWhere('articles.ID IN (:...articlesIDs)', { articlesIDs }) // Include condition for article IDs
+                    .groupBy('articles.ID')
+                    .orderBy('avg_rating', 'DESC')
+                    .getRawMany();
                 return articles;
             }
 
@@ -416,6 +430,17 @@ export class ObjectsService {
                         views: 'DESC',
                     },
                 });
+            } else if (order_by === 'Best Rating') {
+                const calculators = await this.objectRatingsRepository.createQueryBuilder('objectRating')
+                    .select('calculators.*') // Select all columns from calculators
+                    .addSelect('AVG(objectRating.rating)', 'avg_rating') // Calculate average rating
+                    .leftJoin('objectRating.calculators', 'calculators')
+                    .where('calculators.ID IS NOT NULL') // Exclude records where calculator ID is null
+                    .andWhere('calculators.ID IN (:...calculatorsIDs)', { calculatorsIDs }) // Include condition for calculator IDs
+                    .groupBy('calculators.ID')
+                    .orderBy('avg_rating', 'DESC')
+                    .getRawMany();
+                return calculators;
             }
     
             // Retrieve calculators by IDs
@@ -545,7 +570,18 @@ export class ObjectsService {
                         views: 'DESC',
                     },
                 });
-            } else {
+            } else if(order_by === 'Best Rating') {
+                carousels = await this.objectRatingsRepository.createQueryBuilder('objectRating')
+                    .select('carousels.*') // Select all columns from carousels
+                    .addSelect('AVG(objectRating.rating)', 'avg_rating') // Calculate average rating
+                    .leftJoin('objectRating.carousels', 'carousels')
+                    .where('carousels.ID IS NOT NULL') // Exclude records where carousel ID is null
+                    .andWhere('carousels.ID IN (:...carouselIDs)', { carouselIDs }) // Include condition for carousel IDs
+                    .groupBy('carousels.ID')
+                    .orderBy('avg_rating', 'DESC')
+                    .getRawMany();
+            } 
+            else {
                 carousels = await this.carouselsRepository.find({
                     where: { ID: In(carouselIDs) },
                     relations: ['items'],
@@ -596,7 +632,6 @@ export class ObjectsService {
                 .groupBy('mealCards.ID')
                 .orderBy('avg_rating', 'DESC')
                 .getRawMany();
-        
             console.log('Ordered meal cards by Best Rating:', mealCards);
             return mealCards;
         }
@@ -665,6 +700,17 @@ export class ObjectsService {
                         views: 'DESC',
                     },
                 });
+            } else if (order_by === 'Best Rating') {
+                const mealCards = await this.objectRatingsRepository.createQueryBuilder('objectRating')
+                    .select('mealCards.*') // Select all columns from mealCards
+                    .addSelect('AVG(objectRating.rating)', 'avg_rating') // Calculate average rating
+                    .leftJoin('objectRating.mealCards', 'mealCards')
+                    .where('mealCards.ID IS NOT NULL') // Exclude records where meal card ID is null
+                    .andWhere('mealCards.ID IN (:...mealCardsIDs)', { mealCardsIDs }) // Include condition for meal card IDs
+                    .groupBy('mealCards.ID')
+                    .orderBy('avg_rating', 'DESC')
+                    .getRawMany();
+                return mealCards;
             }
     
             // Retrieve meal cards by IDs
