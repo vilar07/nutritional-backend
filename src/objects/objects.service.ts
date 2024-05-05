@@ -95,6 +95,10 @@ export class ObjectsService {
                                 objects[objectType].sort((a, b) => b.views - a.views);
                                 break;
                             // Add more cases for other ordering options if needed
+                            case 'Best Rating':
+                                // Order by best rating logic
+                                objects[objectType].sort((a, b) => b.avg_rating - a.avg_rating);
+                                break;
                             default:
                                 // Handle invalid order_by value
                                 throw new BadRequestException('Invalid order_by value');

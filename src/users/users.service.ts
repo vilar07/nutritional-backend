@@ -9,6 +9,7 @@ import { HttpException } from '@nestjs/common';
 import { Characteristics } from 'src/characteristics/entities/Characteristics';
 import { NotFoundException } from '@nestjs/common';
 import { ObjectsService } from 'src/objects/objects.service'; // Importe o ObjectsService aqui
+import { ObjectRatings } from 'src/objects/entities/ObjectRatings';
 
 
 
@@ -22,7 +23,9 @@ export class UsersService {
         private readonly userCharacteristicAssociationRepository: Repository<UserCharacteristicAssociation>,
         @InjectRepository(Characteristics)
         private readonly characteristicsRepository: Repository<Characteristics>,
-        private readonly objectsService: ObjectsService // Adicione o ObjectsService aqui
+        private readonly objectsService: ObjectsService, // Adicione o ObjectsService aqui
+        @InjectRepository(ObjectRatings)
+        private readonly objectRatingsRepository: Repository<ObjectRatings>,
         
 
     ) {}
@@ -90,6 +93,10 @@ export class UsersService {
         }
         //deletes all the user characteristics
         await this.userCharacteristicAssociationRepository.remove(user.userCharacteristicAssociation);
+
+        //deletes all ratings of the user
+        const userRatings = await this.objectRatingsRepository.find({ where: { users: user }});
+        await this.objectRatingsRepository.remove(userRatings);
 
 
         await this.userRepository.delete({ email: email });

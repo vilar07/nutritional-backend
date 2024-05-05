@@ -7,6 +7,7 @@ import { UserCharacteristicAssociation } from './entities/UserCharacteristicAsso
 import { Characteristics } from 'src/characteristics/entities/Characteristics';
 import { ObjectCharacteristicsAssociation } from 'src/objects/entities/ObjectCharacteristicsAssociation';
 import { ObjectsModule } from 'src/objects/objects.module'; // Importe o ObjectsModule aqui
+import { ObjectRatings } from 'src/objects/entities/ObjectRatings';
 
 
 @Module({
@@ -16,6 +17,7 @@ import { ObjectsModule } from 'src/objects/objects.module'; // Importe o Objects
       UserCharacteristicAssociation,
       Characteristics,
       ObjectCharacteristicsAssociation,
+      ObjectRatings,
     ]),
     ObjectsModule, // Importe e adicione o ObjectsModule aqui
   ],
