@@ -206,41 +206,60 @@ export class ObjectsService {
                 message: 'No articles found',
             };
         }
-        //console.log('Order by:', order_by);
+        let articles: any;
         if (order_by === 'Most Recent') {
-            const articles = await this.articlesRepository.find({
+            articles = await this.articlesRepository.find({
                 order: {
                     created_at: 'DESC',
                 },
+                relations: ['ratings']
             });
-            console.log('Ordered articles:', articles);
-            return articles;
         }
         else if (order_by === 'Most Popular') {
-            const articles = await this.articlesRepository.find({
+            articles = await this.articlesRepository.find({
                 order: {
                     views: 'DESC',
                 },
+                relations: ['ratings']
             });
-            console.log('Ordered articles:', articles);
-            return articles;
         } else if (order_by === 'Best Rating') {
-            const articles = await this.objectRatingsRepository.createQueryBuilder('objectRating')
+            articles = await this.objectRatingsRepository.createQueryBuilder('objectRating')
                 .select('articles.*') // Select all columns from articles
-                .addSelect('AVG(objectRating.rating)', 'avg_rating') // Calculate average rating
+                .addSelect('ROUND(AVG(ratings.rating), 2)', 'avg_rating') // Calculate average rating and round it to two decimal places
                 .leftJoin('objectRating.articles', 'articles')
+                .leftJoin('articles.ratings', 'ratings')
                 .where('articles.ID IS NOT NULL') // Exclude records where article ID is null
                 .groupBy('articles.ID')
                 .orderBy('avg_rating', 'DESC')
                 .getRawMany();
-        
-            console.log('Ordered articles by Best Rating:', articles);
+            // Assuming articles is an array of objects
+            articles.forEach((article: any) => {
+                article.avg_rating = parseFloat(article.avg_rating);
+            });
             return articles;
+        } else {
+            articles = await this.articlesRepository.find({
+                relations: ['ratings']
+            });
         }
     
-        const articles = await this.articlesRepository.find();
-        console.log('Unordered articles:', articles);
-        return articles;
+        // Calculate average rating for each article
+        const articlesWithAvgRating = articles.map(article => {
+            if (article.ratings && article.ratings.length > 0) {
+                const totalRating = article.ratings.reduce((acc, curr) => acc + curr.rating, 0);
+                const avgRating = totalRating / article.ratings.length;
+                return {
+                    ...article,
+                    avg_rating: avgRating
+                };
+            } else {
+                return {
+                    ...article,
+                    avg_rating: 0 // Default average rating if no ratings
+                };
+            }
+        });
+        return articlesWithAvgRating;
     }
 
     async getArticlesByCharacteristic(characteristic: string, optionSelected?: string, order_by?: string) {
@@ -287,40 +306,65 @@ export class ObjectsService {
             console.log('No articles found for the given characteristic.');
             return []; // Return an empty array if no articles are found
             }
-    
+
+            let articles: any
             if (order_by === 'Most Recent') {
-                const articles = await this.articlesRepository.find({
+                articles = await this.articlesRepository.find({
                     where: { ID: In(articlesIDs) },
                     order: {
                         created_at: 'DESC',
                     },
+                    relations: ['ratings']
                 });
-                return articles;
             } else if (order_by === 'Most Popular') {
-                const articles = await this.articlesRepository.find({
+                articles = await this.articlesRepository.find({
                     where: { ID: In(articlesIDs) },
                     order: {
                         views: 'DESC',
                     },
+                    relations: ['ratings']
                 });
-                return articles;
             } else if (order_by === 'Best Rating') {
-                const articles = await this.objectRatingsRepository.createQueryBuilder('objectRating')
+                articles = await this.objectRatingsRepository.createQueryBuilder('objectRating')
                     .select('articles.*') // Select all columns from articles
-                    .addSelect('AVG(objectRating.rating)', 'avg_rating') // Calculate average rating
+                    .addSelect('ROUND(AVG(ratings.rating), 2)', 'avg_rating') // Calculate average rating and round it to two decimal places
                     .leftJoin('objectRating.articles', 'articles')
+                    .leftJoin('articles.ratings', 'ratings')
                     .where('articles.ID IS NOT NULL') // Exclude records where article ID is null
-                    .andWhere('articles.ID IN (:...articlesIDs)', { articlesIDs }) // Include condition for article IDs
+                    .andWhere('articles.ID IN (:...articleIds)', { articleIds: articlesIDs }) // Filter by article IDs
                     .groupBy('articles.ID')
                     .orderBy('avg_rating', 'DESC')
                     .getRawMany();
+                // Assuming articles is an array of objects
+                articles.forEach((article: any) => {
+                    article.avg_rating = parseFloat(article.avg_rating);
+                });
                 return articles;
+            } else {
+                articles = await this.articlesRepository.find({
+                    where: { ID: In(articlesIDs) },
+                    relations: ['ratings']
+                });
             }
 
-            // Retrieve articles by IDs
-            return this.articlesRepository.find({
-            where: { ID: In(articlesIDs) },
+            // Calculate average rating for each article
+            const articlesWithAvgRating = articles.map(article => {
+                if (article.ratings && article.ratings.length > 0) {
+                    const totalRating = article.ratings.reduce((acc, curr) => acc + curr.rating, 0);
+                    const avgRating = totalRating / article.ratings.length;
+                    return {
+                        ...article,
+                        avg_rating: avgRating
+                    };
+                } else {
+                    return {
+                        ...article,
+                        avg_rating: 0 // Default average rating if no ratings
+                    };
+                }
             });
+            return articlesWithAvgRating;
+
         } catch (error) {
             if (error instanceof HttpException) {
                 throw error; // Rethrow the HttpException without logging
@@ -338,34 +382,58 @@ export class ObjectsService {
                 message: 'No calculators found',
             };
         }
-
+        
+        let calculators: any;
         if (order_by === 'Most Recent') {
-            return this.calculatorsRepository.find({
+            calculators = await this.calculatorsRepository.find({
                 order: {
                     created_at: 'DESC',
                 },
+                relations: ['ratings']
             });
         } else if (order_by === 'Most Popular') {
-            return this.calculatorsRepository.find({
+            calculators = await this.calculatorsRepository.find({
                 order: {
                     views: 'DESC',
                 },
+                relations: ['ratings']
             });
         } else if (order_by === 'Best Rating') {
-            const calculators = await this.objectRatingsRepository.createQueryBuilder('objectRating')
-                .select('calculators.*') // Select all columns from calculators
-                .addSelect('AVG(objectRating.rating)', 'avg_rating') // Calculate average rating
+            calculators = await this.objectRatingsRepository.createQueryBuilder('objectRating')
+                .select('calculators.*') // Select all columns from articles
+                .addSelect('ROUND(AVG(ratings.rating), 2)', 'avg_rating') // Calculate average rating and round it to two decimal places
                 .leftJoin('objectRating.calculators', 'calculators')
-                .where('calculators.ID IS NOT NULL') // Exclude records where calculator ID is null
+                .leftJoin('calculators.ratings', 'ratings')
+                .where('calculators.ID IS NOT NULL') // Exclude records where article ID is null
                 .groupBy('calculators.ID')
                 .orderBy('avg_rating', 'DESC')
                 .getRawMany();
-        
-            console.log('Ordered calculators by Best Rating:', calculators);
+            // Assuming articles is an array of objects
+            calculators.forEach((calculator: any) => {
+                calculator.avg_rating = parseFloat(calculator.avg_rating);
+            });
             return calculators;
+        } else {
+            calculators = await this.calculatorsRepository.find({relations: ['ratings']});
         }
 
-        return this.calculatorsRepository.find();
+        // Calculate average rating for each article
+        const calculatorsWithAvgRating = calculators.map(calculator => {
+            if (calculator.ratings && calculator.ratings.length > 0) {
+                const totalRating = calculator.ratings.reduce((acc, curr) => acc + curr.rating, 0);
+                const avgRating = totalRating / calculator.ratings.length;
+                return {
+                    ...calculator,
+                    avg_rating: avgRating
+                };
+            } else {
+                return {
+                    ...calculator,
+                    avg_rating: 0 // Default average rating if no ratings
+                };
+            }
+        });
+        return calculatorsWithAvgRating;
     }
 
 
@@ -416,37 +484,61 @@ export class ObjectsService {
             return []; // Return an empty array if no calculators are found
             }
 
+            let calculators: any;
+
             if (order_by === 'Most Recent') {
-                return this.calculatorsRepository.find({
+                calculators = await this.calculatorsRepository.find({
                     where: { ID: In(calculatorsIDs) },
                     order: {
                         created_at: 'DESC',
                     },
+                    relations: ['ratings']
                 });
             } else if (order_by === 'Most Popular') {
-                return this.calculatorsRepository.find({
+                calculators = await this.calculatorsRepository.find({
                     where: { ID: In(calculatorsIDs) },
                     order: {
                         views: 'DESC',
                     },
+                    relations: ['ratings']
                 });
             } else if (order_by === 'Best Rating') {
-                const calculators = await this.objectRatingsRepository.createQueryBuilder('objectRating')
+                calculators = await this.objectRatingsRepository.createQueryBuilder('objectRating')
                     .select('calculators.*') // Select all columns from calculators
-                    .addSelect('AVG(objectRating.rating)', 'avg_rating') // Calculate average rating
+                    .addSelect('ROUND(AVG(ratings.rating), 2)', 'avg_rating') // Calculate average rating and round it to two decimal places
                     .leftJoin('objectRating.calculators', 'calculators')
+                    .leftJoin('calculators.ratings', 'ratings')
                     .where('calculators.ID IS NOT NULL') // Exclude records where calculator ID is null
-                    .andWhere('calculators.ID IN (:...calculatorsIDs)', { calculatorsIDs }) // Include condition for calculator IDs
+                    .andWhere('calculators.ID IN (:...calculatorIds)', { calculatorIds: calculatorsIDs }) // Filter by calculator IDs
                     .groupBy('calculators.ID')
                     .orderBy('avg_rating', 'DESC')
                     .getRawMany();
+                // Assuming articles is an array of objects
+                calculators.forEach((calculator: any) => {
+                    calculator.avg_rating = parseFloat(calculator.avg_rating);
+                });
                 return calculators;
+            } else {
+                calculators = await this.calculatorsRepository.find({relations: ['ratings']});
             }
-    
-            // Retrieve calculators by IDs
-            return this.calculatorsRepository.find({
-            where: { ID: In(calculatorsIDs) },
-            });
+
+        // Calculate average rating for each article
+        const calculatorsWithAvgRating = calculators.map(calculator => {
+            if (calculator.ratings && calculator.ratings.length > 0) {
+                const totalRating = calculator.ratings.reduce((acc, curr) => acc + curr.rating, 0);
+                const avgRating = totalRating / calculator.ratings.length;
+                return {
+                    ...calculator,
+                    avg_rating: avgRating
+                };
+            } else {
+                return {
+                    ...calculator,
+                    avg_rating: 0 // Default average rating if no ratings
+                };
+            }
+        });
+        return calculatorsWithAvgRating;
         } catch (error) {
             if (error instanceof HttpException) {
                 throw error; // Rethrow the HttpException without logging
@@ -469,39 +561,54 @@ export class ObjectsService {
 
         if (order_by === 'Most Recent') {
             carousels = await this.carouselsRepository.find({
-                relations: ['items'],
+                relations: ['items', 'ratings'],
                 order: {
                     created_at: 'DESC',
                 },
             });
         } else if (order_by === 'Most Popular') {
             carousels = await this.carouselsRepository.find({
-                relations: ['items'],
+                relations: ['items', 'ratings'],
                 order: {
                     views: 'DESC',
                 },
             });
         } else if (order_by === 'Best Rating') {
             carousels = await this.objectRatingsRepository.createQueryBuilder('objectRating')
-                .select('carousels.*') // Select all columns from carousels
-                .addSelect('AVG(objectRating.rating)', 'avg_rating') // Calculate average rating
+                .select('carousels.*') // Select all columns from articles
+                .addSelect('ROUND(AVG(ratings.rating), 2)', 'avg_rating') // Calculate average rating and round it to two decimal places
                 .leftJoin('objectRating.carousels', 'carousels')
-                .where('carousels.ID IS NOT NULL') // Exclude records where carousel ID is null
+                .leftJoin('carousels.ratings', 'ratings')
+                .leftJoin('carousels.items', 'items')
+                .where('carousels.ID IS NOT NULL') // Exclude records where article ID is null
                 .groupBy('carousels.ID')
                 .orderBy('avg_rating', 'DESC')
                 .getRawMany();
-        
-            console.log('Ordered carousels by Best Rating:', carousels);
+            // Assuming articles is an array of objects
+            carousels.forEach((carousel: any) => {
+                carousel.avg_rating = parseFloat(carousel.avg_rating);
+            });
             return carousels;
         } else {
-            carousels = await this.carouselsRepository.find({relations: ['items']});
+            carousels = await this.carouselsRepository.find({relations: ['items', 'ratings']});
         }
-        // Reverse the order of items in each carousel
-        carousels.forEach((carousel: { items: any[]; }) => {
-            carousel.items.reverse();
+        // Calculate average rating for each article
+        const carouselsWithAvgRating = carousels.map(carousel => {
+            if (carousel.ratings && carousel.ratings.length > 0) {
+                const totalRating = carousel.ratings.reduce((acc, curr) => acc + curr.rating, 0);
+                const avgRating = totalRating / carousel.ratings.length;
+                return {
+                    ...carousel,
+                    avg_rating: avgRating
+                };
+            } else {
+                return {
+                    ...carousel,
+                    avg_rating: 0 // Default average rating if no ratings
+                };
+            }
         });
-
-        return carousels;
+        return carouselsWithAvgRating;
 
     }
 
@@ -554,10 +661,9 @@ export class ObjectsService {
     
             let carousels: any;
             if (order_by === 'Most Recent') {
-                console.log("ENTROU");
                 carousels = await this.carouselsRepository.find({
                     where: { ID: In(carouselIDs) },
-                    relations: ['items'],
+                    relations: ['items', 'ratings'],
                     order: {
                         created_at: 'DESC',
                     },
@@ -565,34 +671,48 @@ export class ObjectsService {
             } else if (order_by === 'Most Popular') {
                 carousels = await this.carouselsRepository.find({
                     where: { ID: In(carouselIDs) },
-                    relations: ['items'],
+                    relations: ['items', 'ratings'],
                     order: {
                         views: 'DESC',
                     },
                 });
-            } else if(order_by === 'Best Rating') {
+            } else if (order_by === 'Best Rating') {
                 carousels = await this.objectRatingsRepository.createQueryBuilder('objectRating')
                     .select('carousels.*') // Select all columns from carousels
-                    .addSelect('AVG(objectRating.rating)', 'avg_rating') // Calculate average rating
+                    .addSelect('ROUND(AVG(ratings.rating), 2)', 'avg_rating') // Calculate average rating and round it to two decimal places
                     .leftJoin('objectRating.carousels', 'carousels')
+                    .leftJoin('carousels.ratings', 'ratings')
+                    .leftJoin('carousels.items', 'items')
                     .where('carousels.ID IS NOT NULL') // Exclude records where carousel ID is null
-                    .andWhere('carousels.ID IN (:...carouselIDs)', { carouselIDs }) // Include condition for carousel IDs
+                    .andWhere('carousels.ID IN (:...carouselIds)', { carouselIds: carouselIDs }) // Filter by carousel IDs
                     .groupBy('carousels.ID')
                     .orderBy('avg_rating', 'DESC')
                     .getRawMany();
-            } 
-            else {
-                carousels = await this.carouselsRepository.find({
-                    where: { ID: In(carouselIDs) },
-                    relations: ['items'],
-                    });
+                // Assuming articles is an array of objects
+                carousels.forEach((carousel: any) => {
+                    carousel.avg_rating = parseFloat(carousel.avg_rating);
+                });
+                return carousels;
+            } else {
+                carousels = await this.carouselsRepository.find({relations: ['items', 'ratings'], where: { ID: In(carouselIDs)}});
             }
-            // Reverse the order of items in each carousel
-            carousels.forEach((carousel: { items: any[]; }) => {
-                carousel.items.reverse();
+            // Calculate average rating for each article
+            const carouselsWithAvgRating = carousels.map(carousel => {
+                if (carousel.ratings && carousel.ratings.length > 0) {
+                    const totalRating = carousel.ratings.reduce((acc, curr) => acc + curr.rating, 0);
+                    const avgRating = totalRating / carousel.ratings.length;
+                    return {
+                        ...carousel,
+                        avg_rating: avgRating
+                    };
+                } else {
+                    return {
+                        ...carousel,
+                        avg_rating: 0 // Default average rating if no ratings
+                    };
+                }
             });
-    
-            return carousels;
+            return carouselsWithAvgRating;
         } catch (error) {
             if (error instanceof HttpException) {
                 throw error; // Rethrow the HttpException without logging
@@ -611,32 +731,57 @@ export class ObjectsService {
             };
         }
 
+        let mealCards: any;
         if (order_by === 'Most Recent') {
-            return this.mealCardsRepository.find({
+            mealCards = await this.mealCardsRepository.find({
                 order: {
                     created_at: 'DESC',
                 },
+                relations: ['ratings']
             });
         } else if (order_by === 'Most Popular') {
-            return this.mealCardsRepository.find({
+            mealCards = await this.mealCardsRepository.find({
                 order: {
                     views: 'DESC',
                 },
+                relations: ['ratings']
             });
         } else if (order_by === 'Best Rating') {
-            const mealCards = await this.objectRatingsRepository.createQueryBuilder('objectRating')
-                .select('mealCards.*') // Select all columns from mealCards
-                .addSelect('AVG(objectRating.rating)', 'avg_rating') // Calculate average rating
+            mealCards = await this.objectRatingsRepository.createQueryBuilder('objectRating')
+                .select('mealCards.*') // Select all columns from articles
+                .addSelect('ROUND(AVG(ratings.rating), 2)', 'avg_rating') // Calculate average rating and round it to two decimal places
                 .leftJoin('objectRating.mealCards', 'mealCards')
-                .where('mealCards.ID IS NOT NULL') // Exclude records where meal card ID is null
+                .leftJoin('mealCards.ratings', 'ratings')
+                .where('mealCards.ID IS NOT NULL') // Exclude records where article ID is null
                 .groupBy('mealCards.ID')
                 .orderBy('avg_rating', 'DESC')
                 .getRawMany();
-            console.log('Ordered meal cards by Best Rating:', mealCards);
+            // Assuming articles is an array of objects
+            mealCards.forEach((mealCard: any) => {
+                mealCard.avg_rating = parseFloat(mealCard.avg_rating);
+            });
             return mealCards;
+        } else {
+            mealCards = await this.mealCardsRepository.find({relations: ['ratings']});
         }
 
-        return this.mealCardsRepository.find();
+        // Calculate average rating for each article
+        const mealCardsWithAvgRating = mealCards.map(mealCard => {
+            if (mealCard.ratings && mealCard.ratings.length > 0) {
+                const totalRating = mealCard.ratings.reduce((acc, curr) => acc + curr.rating, 0);
+                const avgRating = totalRating / mealCard.ratings.length;
+                return {
+                    ...mealCard,
+                    avg_rating: avgRating
+                };
+            } else {
+                return {
+                    ...mealCard,
+                    avg_rating: 0 // Default average rating if no ratings
+                };
+            }
+        });
+        return mealCardsWithAvgRating;
     }
 
     async getMealCardsByCharacteristic(characteristic: string, optionSelected?: string, order_by?: string) {
@@ -686,37 +831,60 @@ export class ObjectsService {
             return []; // Return an empty array if no meal cards are found
             }
 
+            let mealCards: any;
             if (order_by === 'Most Recent') {
-                return this.mealCardsRepository.find({
+                mealCards = await this.mealCardsRepository.find({
                     where: { ID: In(mealCardsIDs) },
                     order: {
                         created_at: 'DESC',
                     },
+                    relations: ['ratings']
                 });
             } else if (order_by === 'Most Popular') {
-                return this.mealCardsRepository.find({
+                mealCards = await this.mealCardsRepository.find({
                     where: { ID: In(mealCardsIDs) },
                     order: {
                         views: 'DESC',
                     },
+                    relations: ['ratings']
                 });
             } else if (order_by === 'Best Rating') {
-                const mealCards = await this.objectRatingsRepository.createQueryBuilder('objectRating')
+                mealCards = await this.objectRatingsRepository.createQueryBuilder('objectRating')
                     .select('mealCards.*') // Select all columns from mealCards
-                    .addSelect('AVG(objectRating.rating)', 'avg_rating') // Calculate average rating
+                    .addSelect('ROUND(AVG(ratings.rating), 2)', 'avg_rating') // Calculate average rating and round it to two decimal places
                     .leftJoin('objectRating.mealCards', 'mealCards')
-                    .where('mealCards.ID IS NOT NULL') // Exclude records where meal card ID is null
-                    .andWhere('mealCards.ID IN (:...mealCardsIDs)', { mealCardsIDs }) // Include condition for meal card IDs
+                    .leftJoin('mealCards.ratings', 'ratings')
+                    .where('mealCards.ID IS NOT NULL') // Exclude records where mealCard ID is null
+                    .andWhere('mealCards.ID IN (:...mealCardIds)', { mealCardIds: mealCardsIDs }) // Filter by mealCard IDs
                     .groupBy('mealCards.ID')
                     .orderBy('avg_rating', 'DESC')
                     .getRawMany();
+                // Assuming articles is an array of objects
+                mealCards.forEach((mealCard: any) => {
+                    mealCard.avg_rating = parseFloat(mealCard.avg_rating);
+                });
                 return mealCards;
+            } else {
+                mealCards = await this.mealCardsRepository.find({relations: ['ratings'], where: { ID: In(mealCardsIDs) }});
             }
     
-            // Retrieve meal cards by IDs
-            return this.mealCardsRepository.find({
-            where: { ID: In(mealCardsIDs) },
+            // Calculate average rating for each article
+            const mealCardsWithAvgRating = mealCards.map(mealCard => {
+                if (mealCard.ratings && mealCard.ratings.length > 0) {
+                    const totalRating = mealCard.ratings.reduce((acc, curr) => acc + curr.rating, 0);
+                    const avgRating = totalRating / mealCard.ratings.length;
+                    return {
+                        ...mealCard,
+                        avg_rating: avgRating
+                    };
+                } else {
+                    return {
+                        ...mealCard,
+                        avg_rating: 0 // Default average rating if no ratings
+                    };
+                }
             });
+            return mealCardsWithAvgRating;
         } catch (error) {
             if (error instanceof HttpException) {
                 throw error; // Rethrow the HttpException without logging
