@@ -26,7 +26,7 @@ export class ObjectsController {
     }
 
     @Get(':objectType?') // Making objectType optional by adding a question mark after the parameter
-    @ApiOperation({ summary: 'Get all Objects by object type and optionally by characteristic and selected option or by recommended characteristics' })
+    @ApiOperation({ summary: 'Get all objects, optionally by: object Type, ordered by (Most Recent, Most Popular, Best Rating), certain recommended characteristics, certain characteristic and option selected'})
     @ApiParam({ name: 'objectType', description: 'Type of object', required: false }) // Indicating that objectType is optional in the parameter description
     @ApiQuery({ name: 'characteristic', required: false, description: 'Characteristic' })
     @ApiQuery({ name: 'option_selected', required: false, description: 'Selected option' })
