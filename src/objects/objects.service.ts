@@ -268,7 +268,6 @@ export class ObjectsService {
             if (!characteristicEntity) {
                 throw new HttpException(`Characteristic "${characteristic}" does not exist.`, HttpStatus.NOT_FOUND);
             }
-            console.log('optionSelected:', optionSelected);
     
             let associations: any[];
             if (optionSelected) {
@@ -287,7 +286,6 @@ export class ObjectsService {
                     relations: ['articles'],
                 });
             }
-            console.log('Associations:', associations);
     
             // Check if all associations have no articles
             if (associations.every(association => association.articles.length === 0)) {
@@ -299,7 +297,6 @@ export class ObjectsService {
             const articlesIDs = associations
             .filter(association => association.articles.length > 0)
             .map(association => association.articles[0].ID);
-            console.log('Article IDs:', articlesIDs);
     
             // Check if there are no articles found
             if (articlesIDs.length === 0) {
@@ -443,7 +440,6 @@ export class ObjectsService {
             if (!characteristicEntity) {
                 throw new HttpException(`Characteristic "${characteristic}" does not exist.`, HttpStatus.NOT_FOUND);
             }
-        
             let associations: any[];
             if (optionSelected) {
                 associations = await this.objectCharacteristicsAssociationRepository.find({
@@ -519,7 +515,7 @@ export class ObjectsService {
                 });
                 return calculators;
             } else {
-                calculators = await this.calculatorsRepository.find({relations: ['ratings']});
+                calculators = await this.calculatorsRepository.find({ where: { ID: In(calculatorsIDs) }, relations: ['ratings']}); 
             }
 
         // Calculate average rating for each article

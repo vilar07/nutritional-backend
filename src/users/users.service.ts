@@ -94,12 +94,14 @@ export class UsersService {
         //deletes all the user characteristics
         await this.userCharacteristicAssociationRepository.remove(user.userCharacteristicAssociation);
 
+        const userUpdated = await this.userRepository.findOne({ where: { email: email }});
         //deletes all ratings of the user
-        const userRatings = await this.objectRatingsRepository.find({ where: { users: user }});
-        await this.objectRatingsRepository.remove(userRatings);
+        const userRatings = await this.objectRatingsRepository.find({ where: { users: userUpdated }});
+        const ratingsDeleted = await this.objectRatingsRepository.remove(userRatings);
 
-
-        await this.userRepository.delete({ email: email });
+        if(ratingsDeleted){
+            await this.userRepository.delete({ email: email });
+        }
         return {
             status: HttpStatus.OK,
             message: 'User deleted successfully',
@@ -421,9 +423,6 @@ export class UsersService {
                 
                 const uniqueCharacteristicsArray = Array.from(uniqueCharacteristics);
                 console.log('Unique characteristics:', uniqueCharacteristicsArray);
-                
-                // Chame o método getObjectsByRecommendedCharacteristics com as características recomendadas
-                // Aqui você precisará substituir o retorno pelo método que você deseja chamar
                 return uniqueCharacteristicsArray;
             }
         
@@ -446,12 +445,10 @@ export class UsersService {
             const mostSimilarUsers = similarities.slice(0, 2);
         
             // Obtenha as características com os níveis de confiança mais altos dos dois usuários mais similares
-            
             for (const similarUser of mostSimilarUsers) {
                 console.log(`Similarity between ${similarUser.user1} and ${similarUser.user2}:`, similarUser.similarity);
                 const similarUserIndex = users.findIndex((u: string) => u === similarUser.user2);
                 const userCharacteristics = matrix[similarUserIndex];
-                console.log(userCharacteristics);
         
                 const userRecommendedCharacteristics: { [label: string]: number } = {};
                 // Define the minimum trust level threshold
@@ -464,21 +461,81 @@ export class UsersService {
                         userRecommendedCharacteristics[characteristics[i]] = trustLevel;
                     }
                 }
+                //if userRecommendedCharacteristics = 0, make the for again but with minTrustLevel = 2
+                if(Object.keys(userRecommendedCharacteristics).length === 0){
+                    console.log('No characteristics with trust level greater than 3');
+                    for (let i = 0; i < userCharacteristics.length; i++) {
+                        const trustLevel = userCharacteristics[i];
+                        if (trustLevel > 2) {
+                            userRecommendedCharacteristics[characteristics[i]] = trustLevel;
+                        }
+                    }
+                }
+                //if userRecommendedCharacteristics = 0, make the for again but with minTrustLevel = 1
+                if(Object.keys(userRecommendedCharacteristics).length === 0){
+                    console.log('No characteristics with trust level greater than 2');
+                    for (let i = 0; i < userCharacteristics.length; i++) {
+                        const trustLevel = userCharacteristics[i];
+                        if (trustLevel > 1) {
+                            userRecommendedCharacteristics[characteristics[i]] = trustLevel;
+                        }
+                    }
+                }
+                //if userRecommendedCharacteristics = 0, make the for again but with minTrustLevel = 0
+                if(Object.keys(userRecommendedCharacteristics).length === 0){
+                    console.log('No characteristics with trust level greater than 1');
+                    for (let i = 0; i < userCharacteristics.length; i++) {
+                        const trustLevel = userCharacteristics[i];
+                        if (trustLevel > 0) {
+                            userRecommendedCharacteristics[characteristics[i]] = trustLevel;
+                        }
+                    }
+                }
                 recommendedCharacteristics.push({ user: similarUser.user2, characteristics: userRecommendedCharacteristics });
             }
+
         
             console.log(`Two most similar users to ${userEmail}:`, mostSimilarUsers);
             console.log(`Recommended characteristics for user ${userEmail}:`, recommendedCharacteristics);
     
             const uniqueCharacteristics: Set<string> = new Set();
-            recommendedCharacteristics.forEach(rc => {
-                Object.keys(rc.characteristics).forEach(label => {
-                    uniqueCharacteristics.add(label);
-                });
-            });
             const uniqueCharacteristicsArray = Array.from(uniqueCharacteristics);
-            console.log('Unique characteristics:', uniqueCharacteristicsArray);
-            // Chame o método getObjectsByRecommendedCharacteristics com as características recomendadas
+            if (uniqueCharacteristics.size === 0){
+                // Retorna as características do próprio utilizador
+                const userCharacteristics = matrix[userIndex];
+                const userRecommendedCharacteristics: { [label: string]: number } = {};
+                
+                // Popula o objeto userRecommendedCharacteristics
+                for (let i = 0; i < userCharacteristics.length; i++) {
+                    const trustLevel = userCharacteristics[i];
+                    userRecommendedCharacteristics[characteristics[i]] = trustLevel;
+                }
+                
+                console.log(`User ${userEmail} characteristics:`, userRecommendedCharacteristics);
+                
+                // Retornar as características do próprio utilizador e as características únicas recomendadas
+                const uniqueCharacteristics: Set<string> = new Set();
+                
+                // Adicionar as características do usuário próprio com trust level maior que 0
+                Object.keys(userRecommendedCharacteristics).forEach(label => {
+                    if (userRecommendedCharacteristics[label] > 0) {
+                        uniqueCharacteristics.add(label);
+                    }
+                });
+                
+                // Adicionar as características dos usuários recomendados com trust level maior que 0
+                recommendedCharacteristics.forEach(rc => {
+                    Object.keys(rc.characteristics).forEach(label => {
+                        if (rc.characteristics[label] > 0) {
+                            uniqueCharacteristics.add(label);
+                        }
+                    });
+                });
+                
+                const uniqueCharacteristicsArray = Array.from(uniqueCharacteristics);
+                console.log('Unique characteristics:', uniqueCharacteristicsArray);
+                return uniqueCharacteristicsArray;
+            }
             return uniqueCharacteristicsArray;
         } catch (error) {
             console.error('Error calculating user similarities:', error);
