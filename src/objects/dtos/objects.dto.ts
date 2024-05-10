@@ -25,14 +25,16 @@ import { IsOptional, IsNotEmpty } from 'class-validator';
         @IsNotEmpty({ message: 'Description cannot be empty' })
         description: string;
 
-        @ApiProperty({ description: 'The Time of the day (Morning, Afternoon, Evening)', type: 'string' })
+        @ApiProperty({ description: 'The Time of the day (All Day, Morning, Afternoon, Evening)', type: 'string' })
         @IsOptional()
         time_of_day_relevance: string;
 
-        @ApiProperty({ description: 'The Seasonal relevance (Spring, Summer, Fall, Winter)', type: 'string' })
+        @ApiProperty({ description: 'The Seasonal relevance (All Year, Spring, Summer, Fall, Winter)', type: 'string' })
         @IsOptional()
         season_relevance: string;
     }
+
+    
 
     export class CreateCalculatorDTO {
         @ApiProperty({ description: 'The title of the calculator', type: 'string' })
@@ -43,19 +45,29 @@ import { IsOptional, IsNotEmpty } from 'class-validator';
         @IsNotEmpty({ message: 'Subtitle cannot be empty' })
         subtitle: string;
 
-        @ApiProperty({ description: 'The data of the calculator', type: 'string' })
-        @IsNotEmpty({ message: 'Data cannot be empty' })
-        data: string;
+        @ApiProperty({ description: 'The description of the calculator', type: 'string' })
+        @IsNotEmpty({ message: 'Description cannot be empty' })
+        description: string;
+
+        // Add the image property to the DTO class
+        @ApiProperty({ type: 'string', format: 'binary' })
+        @IsNotEmpty({ message: 'Image cannot be empty' })
+        image: any; // or you can specify the correct type for image data
+
+        //variable to calculate
+        @ApiProperty({ description: 'The variable to calculate', type: 'string' })
+        @IsNotEmpty({ message: 'Variable cannot be empty' })
+        variable_to_calculate: string;
 
         @ApiProperty({ description: 'The equation of the calculator', type: 'string' })
         @IsNotEmpty({ message: 'Equation cannot be empty' })
         equation: string;
 
-        @ApiProperty({ description: 'The Time of the day (Morning, Afternoon, Evening)', type: 'string' })
+        @ApiProperty({ description: 'The Time of the day (All Day, Morning, Afternoon, Evening)', type: 'string' })
         @IsOptional()
         time_of_day_relevance: string;
 
-        @ApiProperty({ description: 'The Seasonal relevance (Spring, Summer, Fall, Winter)', type: 'string' })
+        @ApiProperty({ description: 'The Seasonal relevance (All Year, Spring, Summer, Fall, Winter)', type: 'string' })
         @IsOptional()
         season_relevance: string;
     }

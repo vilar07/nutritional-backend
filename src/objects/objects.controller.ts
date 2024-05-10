@@ -1,12 +1,13 @@
 import { Controller, Get, Logger, Post, Param, Body, Put, Delete, Query } from '@nestjs/common';
 import { ObjectsService } from './objects.service';
 import { GetObjectByIDdto, CreateArticleDTO, AssociateObjectDTO, AssociateObjectOptionDTO, UpdateArticleDTO,
-UpdateAssociationDTO, AssociationItemDTO } from './dtos/objects.dto';
+UpdateAssociationDTO, AssociationItemDTO, 
+CreateCalculatorDTO} from './dtos/objects.dto';
 import { ApiTags } from '@nestjs/swagger';
 import { FileInterceptor, FilesInterceptor } from '@nestjs/platform-express';
 import { UseInterceptors, UploadedFile, BadRequestException,Req, UploadedFiles } from '@nestjs/common';
 import { Request } from 'express';
-import { ApiOperation, ApiConsumes, ApiBody, ApiQuery, ApiParam} from '@nestjs/swagger';
+import { ApiOperation, ApiConsumes, ApiBody, ApiQuery, ApiParam, ApiResponse} from '@nestjs/swagger';
 
 
 
@@ -127,6 +128,28 @@ export class ObjectsController {
 
         return await this.objectsService.createObject(objectType, createObjectDTO, images);
     }
+
+//     @Post(':objectType')
+// @ApiOperation({ summary: 'Create an Object' })
+// @ApiConsumes('multipart/form-data')
+// @UseInterceptors(FilesInterceptor('images', 5))
+// @ApiParam({ name: 'objectType', description: 'Type of object' })
+// @ApiBody({ type: CreateCalculatorDTO }) // Use the DTO class to define the schema
+// @ApiResponse({ status: 201, description: 'The object has been successfully created.' }) // Specify the success response
+// @ApiResponse({ status: 400, description: 'Invalid request parameters.' }) // Specify the error response for invalid request parameters
+// @ApiResponse({ status: 500, description: 'Internal server error.' }) // Specify the error response for internal server error
+// @ApiResponse({ status: 401, description: 'Unauthorized.' }) // Specify the error response for unauthorized access
+// @ApiResponse({ status: 403, description: 'Forbidden.' }) // Specify the error response for forbidden access
+// async createObject(
+//     @Param('objectType') objectType: string,
+//     @UploadedFiles() images: Array<Express.Multer.File>,
+//     @Body() createObjectDTO: CreateCalculatorDTO, // Use the DTO class here as well
+//     @Req() req: Request
+// ) {
+//     // Your existing switch statement to handle different object types
+
+//     return this.objectsService.createObject(objectType, createObjectDTO, images);
+// }
 
     @Put(':objectType/:id')
     @ApiOperation({ summary: 'Update an Object' })
