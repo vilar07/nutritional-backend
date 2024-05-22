@@ -447,6 +447,10 @@ export class UsersService {
             // Obtenha as características com os níveis de confiança mais altos dos dois usuários mais similares
             for (const similarUser of mostSimilarUsers) {
                 console.log(`Similarity between ${similarUser.user1} and ${similarUser.user2}:`, similarUser.similarity);
+                //if similarUser.simiarity = NaN, go for the next loop
+                if(isNaN(similarUser.similarity)){
+                    continue;
+                }
                 const similarUserIndex = users.findIndex((u: string) => u === similarUser.user2);
                 const userCharacteristics = matrix[similarUserIndex];
         
