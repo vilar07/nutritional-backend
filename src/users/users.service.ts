@@ -500,7 +500,7 @@ export class UsersService {
 
         
             console.log(`Two most similar users to ${userEmail}:`, mostSimilarUsers);
-            console.log(`Recommended characteristics for user ${userEmail}:`, recommendedCharacteristics);
+            console.log(`Recommended characteristics for user ${userEmail} from ${mostSimilarUsers[0].user2} and ${mostSimilarUsers[1].user2}:`, recommendedCharacteristics);
     
             const uniqueCharacteristics: Set<string> = new Set();
             const uniqueCharacteristicsArray = Array.from(uniqueCharacteristics);
@@ -515,7 +515,7 @@ export class UsersService {
                     userRecommendedCharacteristics[characteristics[i]] = trustLevel;
                 }
                 
-                console.log(`User ${userEmail} characteristics:`, userRecommendedCharacteristics);
+                //console.log(`User ${userEmail} characteristics:`, userRecommendedCharacteristics);
                 
                 // Retornar as características do próprio utilizador e as características únicas recomendadas
                 const uniqueCharacteristics: Set<string> = new Set();
@@ -537,7 +537,7 @@ export class UsersService {
                 });
                 
                 const uniqueCharacteristicsArray = Array.from(uniqueCharacteristics);
-                console.log('Unique characteristics:', uniqueCharacteristicsArray);
+                console.log(`All Recommended Characteristics based on predictions and ${userEmail} profile:`, uniqueCharacteristicsArray);
                 return uniqueCharacteristicsArray;
             }
             return uniqueCharacteristicsArray;
