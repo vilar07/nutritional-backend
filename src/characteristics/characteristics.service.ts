@@ -606,17 +606,19 @@ export class CharacteristicsService {
                 await this.objectCharacteristicsAssociationRepository.remove(objectCharacteristicsAssociation);
             }
 
-            const characteristics = await this.characteristicsRepository.findOne({
+            const characteristic = await this.characteristicsRepository.findOne({
                 where: {
                     name: params.name,
                 },
             });
+
+            console.log(characteristic);
     
-            if (!characteristics) {
+            if (!characteristic) {
                 throw new NotFoundException('Characteristics not found');
             }
     
-            await this.characteristicsRepository.remove(characteristics);
+            await this.characteristicsRepository.delete(characteristic.id);
     
             return {
                 status: HttpStatus.OK,
