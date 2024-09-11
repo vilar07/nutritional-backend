@@ -28,7 +28,21 @@ nest start
 
 ## Description
 
-[Nest](https://github.com/nestjs/nest) framework TypeScript starter repository.
+## Personalized Nutritional Recommendation System
+
+This backend project is part of a web system that provides personalized nutritional recommendations, using user interactions to suggest meals, articles, and other health and wellness tools. The system also offers an automated interface for nutritionists to efficiently create and manage content.
+
+## Key Features
+
+- Personalized recommendations of meals and content based on user preferences and interactions.
+- Automatic capture of user characteristics, minimizing the need for manual input.
+- Interface for nutritionists and administrators to create and manage objects (articles, calculators, carousels, etc.).
+- Feedback and rating system to improve the quality of recommendations.
+- Advanced filters and simple content management for nutritionists.
+
+Simple Article Link: https://drive.google.com/file/d/1Mo__XUk7SwtLU5yupuh072cyd-rBeiNr/view?usp=sharing
+Video: https://www.youtube.com/watch?v=7_4gtJnHXF0
+
 
 ## Installation
 
